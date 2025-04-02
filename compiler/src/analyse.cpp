@@ -7,12 +7,13 @@
 
 namespace parse {
 
-symbtable Scope[10000];
-symbtable DestroyScope[10000];
-int destroylevel = 0;
+symbolTable Scope[10000];        // 符号表
+symbolTable DestroyScope[10000]; // 撤销符号表
+int destroyLevel = 0;
 int level = 0;
-bool flagtree = false;
-symbtable* table = nullptr;
+// 用于判断自定义类型是类型声明还是变量声明，变量声明为false
+bool flagTree = false;
+symbolTable* table = nullptr;
 int off = 7;
 
 void CreatTable() {
@@ -20,70 +21,77 @@ void CreatTable() {
   level++;
 }
 
+// 撤销一个符号表
 void DestroyTable() {
-  DestroyScope[destroylevel].next = Scope[level].next;
-  destroylevel++;
+  DestroyScope[destroyLevel].next = Scope[level].next;
+  destroyLevel++;
   Scope[level].next = nullptr;
   level = level - 1;
 }
 
-bool SearchoneTable(const std::string& id, const int currentLevel,
-                    symbtable** Entry) {
-  symbtable* t = Scope[currentLevel].next;
+// 从表头开始，依次将节点中的标识符名字和id比较是否相同，直
+// 到找到此标识符或到达表尾，若找到，返回真值，Entry为标识符
+// 在符号表中的位置，否则，返回值为假。
+bool SearchOneTable(const std::string& id, const int currentLevel,
+                    symbolTable** Entry) {
+  symbolTable* t = Scope[currentLevel].next;
   while (t != nullptr) {
-    if (t->idname == id) {
+    if (t->idName == id) {
       (*Entry) = t;
       return true;
     }
     // TODO
-    else {
-      t = t->next;
-    }
+    // else {
+    //   t = t->next;
+    // }
   }
   return false;
 }
 
-bool FindEntry(const std::string& id, const bool flag, symbtable** Entry) {
+// 符号表中查找标识符
+bool FindEntry(const std::string& id, const bool flag, symbolTable** Entry) {
   if (flag) {
     for (int i = level; i > 0; i--) {
-      if (SearchoneTable(id, i, Entry)) {
+      if (SearchOneTable(id, i, Entry)) {
         return true;
       }
     }
   } else {
-    return SearchoneTable(id, level, Entry);
+    return SearchOneTable(id, level, Entry);
   }
   return false;
 }
 
+// 登记标识符和属性到符号表
 bool Enter(const std::string& Id, const AttributeIR* AttribP,
-           symbtable** Entry) {
-  bool present = FindEntry(Id, false, Entry);
+           symbolTable** Entry) {
+  const bool present = FindEntry(Id, false, Entry);
   if (present == true) {
-    std::cout << "��ʶ���ظ�����" << std::endl;
+    std::cout << "Identifier duplicate declarations" << std::endl;
   } else {
-    auto* newsymbtable = new symbtable;
-    newsymbtable->idname = Id;
-    newsymbtable->attrIR = *AttribP; // ��ʶ����Ϣ��
+    auto* newSymbolTable = new symbolTable;
+    newSymbolTable->idName = Id;
+    newSymbolTable->attrIR = *AttribP;
 
     if (Scope[level].next == nullptr) {
-      Scope[level].next = newsymbtable;
+      Scope[level].next = newSymbolTable;
     } else {
-      symbtable* t = Scope[level].next;
+      symbolTable* t = Scope[level].next;
       while (t->next != nullptr) {
         t = t->next;
       }
-      t->next = newsymbtable;
+      t->next = newSymbolTable;
     }
-    (*Entry) = newsymbtable;
+    (*Entry) = newSymbolTable;
   }
   return present;
 }
 
+// 在域表中查找域名
 bool FindField(const std::string& Id, fieldChain* head, fieldChain** Entry) {
   fieldChain* r = head;
   while (r != nullptr) {
-    if (Id == r->idname) {
+    if (Id == r->idName) {
       (*Entry) = r;
       return true;
     }
@@ -92,6 +100,7 @@ bool FindField(const std::string& Id, fieldChain* head, fieldChain** Entry) {
   return false;
 }
 
+// 打印符号表
 // void Printsymbtable() {
 //	for (int i = 1; i < level+1; i++) {
 //		symbtable* t = Scope[i].next;
@@ -112,58 +121,61 @@ bool FindField(const std::string& Id, fieldChain* head, fieldChain** Entry) {
 //		}
 //	}
 // }
-void Inputsymb(const std::string& path) {
-  std::ofstream ouput;
-  ouput.open(path);
+
+// 输出符号表
+void InputSymbol(const std::string& path) {
+  std::ofstream output;
+  output.open(path);
   for (int i = 1; i < level + 1; i++) {
-    const symbtable* t = Scope[i].next;
+    const symbolTable* t = Scope[i].next;
     while (t != nullptr) {
       if (t->attrIR.kind == typeKind) {
-        ouput << t->idname << " " << t->attrIR.kind << " " << &t->attrIR << " "
-              << t->attrIR.idtype << " " << t->attrIR.More.VarAttr.level
-              << std::endl;
+        output << t->idName << " " << t->attrIR.kind << " " << &t->attrIR << " "
+               << t->attrIR.idtype << " " << t->attrIR.More.VarAttr.level
+               << std::endl;
       } else if (t->attrIR.kind == varKind) {
         if (t->attrIR.idtype != nullptr) {
-          ouput << t->idname << " " << t->attrIR.kind << " " << &t->attrIR
-                << " " << t->attrIR.idtype << " "
-                << t->attrIR.More.VarAttr.level << " " << t->attrIR.idtype->kind
-                << " " << t->attrIR.idtype->size << std::endl;
+          output << t->idName << " " << t->attrIR.kind << " " << &t->attrIR
+                 << " " << t->attrIR.idtype << " "
+                 << t->attrIR.More.VarAttr.level << " "
+                 << t->attrIR.idtype->kind << " " << t->attrIR.idtype->size
+                 << std::endl;
         } else {
-          ouput << t->idname << " " << t->attrIR.kind << " " << &t->attrIR
-                << " " << std::endl;
+          output << t->idName << " " << t->attrIR.kind << " " << &t->attrIR
+                 << " " << std::endl;
         }
       } else {
-        ouput << t->idname << " " << t->attrIR.kind << " " << &t->attrIR << " "
-              << t->attrIR.idtype << " " << t->attrIR.More.ProcAttr.level << " "
-              << t->attrIR.More.ProcAttr.param << std::endl;
+        output << t->idName << " " << t->attrIR.kind << " " << &t->attrIR << " "
+               << t->attrIR.idtype << " " << t->attrIR.More.ProcAttr.level
+               << " " << t->attrIR.More.ProcAttr.param << std::endl;
       }
 
       t = t->next;
     }
   }
-  ouput.close();
+  output.close();
 }
 
-void Inputdestroysymb(const std::string& path) {
+// 输出已撤销地符号表
+void InputDestroySymbol(const std::string& path) {
   std::ofstream ouput;
   ouput.open(path, std::ios::app);
   ouput << std::endl << std::endl << std::endl << std::endl << std::endl;
-  ouput << "******************************��ɾ�����ű�***************************"
-        << std::endl;
-  for (int i = 0; i < destroylevel; i++) {
-    const symbtable* t = DestroyScope[i].next;
+  ouput << "Destroy Symbol Table: " << std::endl;
+  for (int i = 0; i < destroyLevel; i++) {
+    const symbolTable* t = DestroyScope[i].next;
     while (t != nullptr) {
       if (t->attrIR.kind == typeKind) {
-        ouput << t->idname << " " << t->attrIR.kind << " " << &t->attrIR << " "
+        ouput << t->idName << " " << t->attrIR.kind << " " << &t->attrIR << " "
               << t->attrIR.idtype << " " << t->attrIR.More.VarAttr.level
               << std::endl;
       } else if (t->attrIR.kind == varKind) {
-        ouput << t->idname << " " << t->attrIR.kind << " " << &t->attrIR << " "
+        ouput << t->idName << " " << t->attrIR.kind << " " << &t->attrIR << " "
               << t->attrIR.idtype << " " << t->attrIR.More.VarAttr.level << " "
               << t->attrIR.idtype->kind << " " << t->attrIR.idtype->size
               << std::endl;
       } else {
-        ouput << t->idname << " " << t->attrIR.kind << " " << &t->attrIR << " "
+        ouput << t->idName << " " << t->attrIR.kind << " " << &t->attrIR << " "
               << t->attrIR.idtype << " " << t->attrIR.More.ProcAttr.level << " "
               << t->attrIR.More.ProcAttr.param << std::endl;
       }
@@ -176,7 +188,9 @@ void Inputdestroysymb(const std::string& path) {
 
 typeIR *intPtr, *charPtr, *boolPtr;
 
-// ��ʼ�����������ڲ���ʾ��������ʼ���������ͣ��ַ����ͣ��������͵��ڲ���ʾ˵���������������;�Ϊ�������ͣ��ڲ���ʾ�̶���
+// 初始化基本类型内部表示函数
+// 初始化整数类型，字符类型，布尔类型的内部表示说明
+// 由于这三种类型均为基本类型，内部表示固定
 void initialize() {
   intPtr = new typeIR;
   intPtr->size = 1;
@@ -189,16 +203,18 @@ void initialize() {
   boolPtr->kind = boolTy;
 }
 
+// 自定义类型内部结构分析函数
 typeIR* nameType(const TreeNode* t) {
-  auto** Entry = new symbtable*;
+  auto** Entry = new symbolTable*;
   int i = 0;
-  if (flagtree) {
+  if (flagTree) {
     i++;
   }
   bool flag = FindEntry(t->name[i], false, Entry);
 
   if (!flag) {
-    std::cout << t->lineno << "�Զ�������" + t->name[i] + "δ����" << std::endl;
+    std::cout << t->lineno << "Custom type " + t->name[i] + "no declare"
+              << std::endl;
   } else {
     return (*Entry)->attrIR.idtype;
   }
@@ -206,60 +222,62 @@ typeIR* nameType(const TreeNode* t) {
   return nullptr;
 }
 
+// 数组类型内部表示处理函数
 typeIR* arrayType(const TreeNode* t) {
   if (t->attr.arrayAttr.low > t->attr.arrayAttr.up) {
-    std::cout << "�����±�Խ��" << std::endl;
+    std::cout << "The array subscript is out of bounds" << std::endl;
   } else {
-    auto* newarrayType = new typeIR;
-    newarrayType->kind = arrayTy;
-    newarrayType->size = ((t->attr.arrayAttr.up) - (t->attr.arrayAttr.low) + 1);
-    newarrayType->More.ArrayAttr.indexTy = intPtr;
-    newarrayType->More.ArrayAttr.low = t->attr.arrayAttr.low;
-    newarrayType->More.ArrayAttr.up = t->attr.arrayAttr.up;
+    auto* newArrayType = new typeIR;
+    newArrayType->kind = arrayTy;
+    newArrayType->size = ((t->attr.arrayAttr.up) - (t->attr.arrayAttr.low) + 1);
+    newArrayType->More.ArrayAttr.indexTy = intPtr;
+    newArrayType->More.ArrayAttr.low = t->attr.arrayAttr.low;
+    newArrayType->More.ArrayAttr.up = t->attr.arrayAttr.up;
     if (t->attr.arrayAttr.childType == CharK) {
-      newarrayType->More.ArrayAttr.elemTy = charPtr;
+      newArrayType->More.ArrayAttr.elemTy = charPtr;
     } else {
-      newarrayType->More.ArrayAttr.elemTy = intPtr;
+      newArrayType->More.ArrayAttr.elemTy = intPtr;
     }
-    return newarrayType;
+    return newArrayType;
   }
   return nullptr;
 }
 
-void outputbody(const fieldChain* bodyt) {
-  if (bodyt == nullptr) {
+void outputbody(const fieldChain* bodyT) {
+  if (bodyT == nullptr) {
   } else {
-    std::cout << "  " << bodyt->idname;
-    outputbody(bodyt->next);
+    std::cout << "  " << bodyT->idName;
+    outputbody(bodyT->next);
   }
 }
 
+// 处理记录类型的内部表示函数
 typeIR* recordType(const TreeNode* t) {
   int sum_filed = 0;
-  auto* newrecordType = new typeIR;
-  newrecordType->kind = recordTy;
-  fieldChain *newbody = nullptr, *dt = nullptr;
+  auto* newRecordType = new typeIR;
+  newRecordType->kind = recordTy;
+  fieldChain *newBody = nullptr, *dt = nullptr;
   TreeNode* nt = t->child[0];
-  int recordoffset = 0;
+  int recordOffset = 0;
   while (nt != nullptr) {
     for (int i = 0; i < nt->name.size(); i++) {
-      if (newbody != nullptr) {
+      if (newBody != nullptr) {
         auto** Entry = new fieldChain*;
-        if (bool flag = FindField(nt->name[i], newbody, Entry)) {
-          std::cout << t->lineno << "record������" << std::endl;
+        if (bool flag = FindField(nt->name[i], newBody, Entry)) {
+          std::cout << t->lineno << "record rename" << std::endl;
         }
       }
       auto* newt = new fieldChain;
-      if (newbody == nullptr) {
-        newbody = newt;
+      if (newBody == nullptr) {
+        newBody = newt;
       } else {
         dt->next = newt;
       }
       newt->unitType = TypeProcess(nt);
-      newt->idname = nt->name[i];
+      newt->idName = nt->name[i];
 
-      newt->offset = recordoffset;
-      recordoffset = recordoffset + newt->unitType->size;
+      newt->offset = recordOffset;
+      recordOffset = recordOffset + newt->unitType->size;
       sum_filed += newt->unitType->size;
       newt->next = nullptr;
       dt = newt;
@@ -267,13 +285,14 @@ typeIR* recordType(const TreeNode* t) {
     nt = nt->sibling;
   }
   dt->next = nullptr;
-  newrecordType->More.body = newbody;
-  // outputbody(newbody);std::cout<<std::endl;
-  newrecordType->size = sum_filed;
-  return newrecordType;
+  newRecordType->More.body = newBody;
+  newRecordType->size = sum_filed;
+  return newRecordType;
 }
 
-typeIR* TypeProcess(TreeNode* t) {
+// 类型分析处理函数：类型分析处理。处理语法树的当前节点类型，构造当前类型的内部
+// 表示，并将其地址返回给Ptr类型内部表示的地址。
+typeIR* TypeProcess(const TreeNode* t) {
   if (t->kind.dec == ArrayK) {
     return arrayType(t);
   } else if (t->kind.dec == CharK) {
@@ -288,27 +307,28 @@ typeIR* TypeProcess(TreeNode* t) {
   return nullptr;
 }
 
+// 类型声明部分分析处理函数
 void TypeDecPart(TreeNode* t) {
   if (t == nullptr) {
     return;
   }
-
-  auto** Entry = new symbtable*;
-  auto** Entry1 = new symbtable*;
+  auto** Entry = new symbolTable*;
+  auto** Entry1 = new symbolTable*;
   int i = 0;
   if (t->kind.dec == IdK) {
     i++;
   }
   for (; i < t->name.size(); i++) {
     if (bool flag = FindEntry(t->name[0], false, Entry)) {
-      std::cout << t->lineno << "���ͱ�ʶ��" + t->name[0] + "�ظ�����"
+      std::cout << t->lineno
+                << "type identifier " + t->name[0] + " duplicate declarations"
                 << std::endl;
     } else {
       auto* a = new AttributeIR;
       a->kind = typeKind;
-      flagtree = true;
+      flagTree = true;
       a->idtype = TypeProcess(t);
-      flagtree = false;
+      flagTree = false;
       Enter(t->name[0], a, Entry);
       t->table.clear();
       t->table.push_back(*Entry);
@@ -321,12 +341,14 @@ void TypeDecPart(TreeNode* t) {
   TypeDecPart(t->sibling);
 }
 
+// 变量声明部分分析处理函数
+// 传进来的t是声明结点的东西,加到符号表
 void VarDecList(TreeNode* t) {
   if (t == nullptr) {
     return;
   }
-  auto** Entry = new symbtable*;
-  auto** Entry1 = new symbtable*;
+  auto** Entry = new symbolTable*;
+  auto** Entry1 = new symbolTable*;
   int i = 0;
   if (t->kind.dec == IdK) {
 
@@ -336,7 +358,8 @@ void VarDecList(TreeNode* t) {
   for (; i < t->name.size(); i++) {
 
     if (bool flag = FindEntry(t->name[i], false, Entry)) {
-      std::cout << t->lineno << "������ʶ��" + t->name[i] + "�ظ�����"
+      std::cout << t->lineno
+                << "type identifier " + t->name[i] + " duplicate declarations"
                 << std::endl;
 
     } else {
@@ -365,6 +388,7 @@ void VarDecList(TreeNode* t) {
   VarDecList(t->sibling);
 }
 
+// 形参分析处理函数
 ParamTable* ParaDecList(TreeNode* t) {
   if (t == nullptr) {
     return nullptr;
@@ -376,11 +400,14 @@ ParamTable* ParaDecList(TreeNode* t) {
   if (t->kind.dec == IdK) {
     i++;
   }
-  auto** Entry1 = new symbtable*;
+  auto** Entry1 = new symbolTable*;
   for (; i < t->name.size(); i++) {
-    auto** Entry = new symbtable*;
+    auto** Entry = new symbolTable*;
     if (bool flag = FindEntry(t->name[i], false, Entry)) {
-      std::cout << t->lineno << "�βα�ʶ��" + t->name[i] + "�ظ�����" << std::endl;
+      std::cout << t->lineno
+                << "Parameter identifier " + t->name[i] +
+                       " Duplicate declarations"
+                << std::endl;
     } else {
       auto* a = new AttributeIR;
       a->kind = varKind;
@@ -392,7 +419,7 @@ ParamTable* ParaDecList(TreeNode* t) {
       }
 
       a->More.VarAttr.access = dir;
-      if (t->attr.procAttr.paramt == Varparamtype)
+      if (t->attr.procAttr.paramType == VarParamType)
         a->More.VarAttr.access = indir;
 
       a->More.VarAttr.level = level;
@@ -409,7 +436,6 @@ ParamTable* ParaDecList(TreeNode* t) {
         dt->next = parat;
       }
       parat->entry = (*Entry);
-      // parat->next =new ParamTable;
       parat->next = nullptr;
       dt = parat;
     }
@@ -418,67 +444,49 @@ ParamTable* ParaDecList(TreeNode* t) {
   return paralist;
 }
 
+// 过程声明部分分析处理函数
 void ProcDecPart(TreeNode* t) {
   if (t == nullptr) {
     return;
   }
-  auto* procir = new AttributeIR;
-  procir->kind = procKind;
-  procir->More.ProcAttr.level = level;
-  auto* paramt = new ParamTable;
-  procir->More.ProcAttr.param = paramt;
-  auto** Entry = new symbtable*;
-  Enter(t->name[0], procir, Entry);
+  // 将函数添加进符号表
+  auto* procIR = new AttributeIR;
+  procIR->kind = procKind;
+  procIR->More.ProcAttr.level = level;
+  auto* paramT = new ParamTable;
+  procIR->More.ProcAttr.param = paramT;
+  auto** Entry = new symbolTable*;
+  Enter(t->name[0], procIR, Entry);
   t->table.push_back(*Entry);
-  int toff = off;
+  const int toff = off;
   CreatTable();
+
+  // 处理形参，并将形参表给函数的符号表内的param项
   (*Entry)->attrIR.More.ProcAttr.param = ParaDecList(t->child[0]);
-  bianli(t->child[1]); // ����
+  traverse(t->child[1]);
 
   (*Entry)->attrIR.More.ProcAttr.size = off;
-  Body(t->child[2]->child[0]); // ���
+  Body(t->child[2]->child[0]);
   DestroyTable();
   off = toff;
   ProcDecPart(t->sibling);
 }
 
+// 表达式分析处理函数
 typeIR* Expr(TreeNode* t, AccessKind* Ekind) {
   if (t->kind.exp == IdEK) {
-    auto** Entry = new symbtable*;
+    auto** Entry = new symbolTable*;
     bool flag = FindEntry(t->name[0], true, Entry);
     if (!flag) {
-      std::cout << t->lineno << "����ʽ�����" + t->name[0] + "δ����"
+      std::cout << t->lineno
+                << "expression statement " + t->name[0] + " no declare"
                 << std::endl;
     } else {
       t->table.push_back(*Entry);
       if (t->child[0] != nullptr) {
         if ((*Entry)->attrIR.idtype->kind == arrayTy) {
-          // typeIR* tmp = Expr(t->child[0], Ekind);
-          // if (tmp != nullptr)
-          //{
-          //     /*if (Expr(t->child[0], Ekind)->kind == arrayTy)
-          //     {
-          //         return Expr(t->child[0], Ekind);
-          //     }*/
-          //     if (tmp->kind != intTy) {
-          //         std::cout << "�����±�����������";
-          //     }
-          //     return (*Entry)->attrIR.idtype->More.ArrayAttr.elemTy;
-          // }
-
           return arrayVar(t);
-
         } else if ((*Entry)->attrIR.idtype->kind == recordTy) {
-          /*  fieldChain* aa = (*Entry)->attrIR.idtype->More.body;
-            while (aa != nullptr)
-            {
-                if (aa->idname == t->child[0]->name[0])
-                {
-                    return aa->unitType;
-                }
-                aa = aa->next;
-            }
-            std::cout << t->lineno << "record��û�д�Ԫ��" << std::endl;*/
           return recordVar(t);
         }
       } else {
@@ -489,9 +497,9 @@ typeIR* Expr(TreeNode* t, AccessKind* Ekind) {
     (*Ekind) = dir;
     return intPtr;
   } else {
-    auto* Ekindt = new AccessKind;
-    typeIR* a = Expr(t->child[0], Ekindt);
-    typeIR* b = Expr(t->child[1], Ekindt);
+    auto* EKindT = new AccessKind;
+    typeIR* a = Expr(t->child[0], EKindT);
+    typeIR* b = Expr(t->child[1], EKindT);
     if (a == b) {
       if (t->attr.expAttr.op == scanner::LT ||
           t->attr.expAttr.op == scanner::EQ) {
@@ -500,77 +508,31 @@ typeIR* Expr(TreeNode* t, AccessKind* Ekind) {
       (*Ekind) = dir;
       return a;
     }
-    // else {
-    //   std::cout << t->lineno << "����ʽ���(���Ҳ�����)���Ͳ�ƥ��" << std::endl;
-    // }
   }
   return nullptr;
 }
 
-// TypeKind assignstatementpart(TreeNode* t) {
-//	if (t->kind.exp == IdEK) {
-//		symbtable** Entry = new symbtable*;
-//		bool flag = FindEntry(t->name[0], true,Entry);
-//		if (!flag)
-//			std::cout << "��ֵ�����" + t->name[0] + "δ����";
-//		else {
-//			if ((*Entry)->attrIR.idtype->kind == arrayTy)
-////�������ͷ���Ԫ�ص��ڲ���ʾ��kind
-//			{
-//				return
-//(*Entry)->attrIR.idtype->More.ArrayAttr.elemTy->kind;
-//			}
-//			else return (*Entry)->attrIR.idtype->kind;
-//		}
-//	}
-//	else if (t->kind.exp == ConstK) {
-//		return intTy;
-//	}
-//	else {
-//		TypeKind a=assignstatementpart(t->child[0]);
-//		TypeKind b = assignstatementpart(t->child[1]);
-//		if (a == b)
-//			return a;
-//		else std::cout << "��ֵ����ʽ�Ҷ����Ͳ�ƥ��";
-//	}
-//	return intTy;
-// }
-void assignstatement(const TreeNode* t) {
+// 赋值语句分析函数
+void assignStatement(const TreeNode* t) {
   if (t->child[0]->kind.exp != IdEK) {
-    std::cout << t->lineno << "��ֵ�����˲��Ǳ�ʶ��" << std::endl;
+    std::cout << t->lineno
+              << "The left end of the assignment statement is not an identifier"
+              << std::endl;
   } else {
-    auto** Entry = new symbtable*;
-    bool flag = FindEntry(t->child[0]->name[0], true, Entry);
-    if (!flag) {
-      std::cout << t->lineno << "��ʶ��" + t->child[0]->name[0] + "δ����"
+    auto** Entry = new symbolTable*;
+    if (const bool flag = FindEntry(t->child[0]->name[0], true, Entry); !flag) {
+      std::cout << t->lineno
+                << "identifier " + t->child[0]->name[0] + " no declare"
                 << std::endl;
-    } else { // nowt�ǵ�ʽ��� ����������\��¼����ʽ  ����Ǳ�ʶ���͵���
+    } else {
       TreeNode* nowt = t->child[0];
       t->child[0]->table.push_back(*Entry);
-      const symbtable* findt = *Entry;
+      const symbolTable* findt = *Entry;
       typeIR* kindleft = findt->attrIR.idtype;
       if (nowt->child[0] != nullptr) {
         if (findt->attrIR.idtype->kind == arrayTy) {
-
-          // AccessKind *Ekind = new AccessKind;
-          // kindleft = Expr(nowt->child[0], Ekind);
           kindleft = arrayVar(nowt);
         } else if ((*Entry)->attrIR.idtype->kind == recordTy) {
-          /*            fieldChain *aa = (*Entry)->attrIR.idtype->More.body;
-                      bool flagg = true;
-                      while (aa != nullptr)
-                      {
-                          if (aa->idname == nowt->child[0]->name[0])
-                          {
-                              kindleft = aa->unitType;
-                              flagg = false;
-                              break;
-                          }
-                          aa = aa->next;
-                      }
-                      if (flagg)
-                      { std::cout << t->lineno << "record��û�д�Ԫ��" <<
-             std::endl; }*/
           kindleft = recordVar(nowt);
           if (kindleft->kind == arrayTy)
             kindleft = kindleft->More.ArrayAttr.elemTy;
@@ -579,26 +541,29 @@ void assignstatement(const TreeNode* t) {
       auto* Ekind = new AccessKind;
       typeIR* kindright = Expr(t->child[1], Ekind);
       if (kindleft != kindright) {
-        std::cout << t->lineno << "���" << kindleft->kind << std::endl;
-        std::cout << t->lineno << "�ұ�" << kindright->kind << std::endl;
-        std::cout << t->lineno << "��ֵ����������Ͳ�ƥ��" << std::endl;
+        std::cout << t->lineno << " left " << kindleft->kind << std::endl;
+        std::cout << t->lineno << " right " << kindright->kind << std::endl;
+        std::cout << t->lineno
+                  << " The left and right types of the assignment statement do "
+                     "not match "
+                  << std::endl;
       }
     }
   }
 }
 
-void callstatement(const TreeNode* t) {
-  auto** Entry = new symbtable*;
-  const bool flag = FindEntry(t->child[0]->name[0], true, Entry);
-  if (!flag) {
-    std::cout << t->lineno << "����" + t->child[0]->name[0] + "δ����"
+// 过程调用语句分析处理函数
+void callStatement(const TreeNode* t) {
+  auto** Entry = new symbolTable*;
+  if (const bool flag = FindEntry(t->child[0]->name[0], true, Entry); !flag) {
+    std::cout << t->lineno
+              << " function " + t->child[0]->name[0] + " no declare "
               << std::endl;
   } else {
     if ((*Entry)->attrIR.kind != procKind) {
       std::cout
           << t->lineno
-          << "��ʶ�����Ǻ������ͣ��޷����"
-             "�"
+          << " The identifier is not a function type and cannot be called "
           << std::endl;
     } else {
       t->child[0]->table.push_back(*Entry);
@@ -606,25 +571,26 @@ void callstatement(const TreeNode* t) {
         if ((*Entry)->attrIR.More.ProcAttr.param == nullptr) {
           return;
         } else {
-          std::cout << t->lineno << "������ƥ��" << std::endl;
+          std::cout << t->lineno << " The parameters do not match "
+                    << std::endl;
         }
       }
-      // a��Ҫ��� b���Ҵ���
       ParamTable* a = (*Entry)->attrIR.More.ProcAttr.param;
       TreeNode* b = t->child[1];
       while (a != nullptr && b != nullptr) {
-        auto* Ekind = new AccessKind;
-        typeIR* bt = Expr(b, Ekind);
-        if (a->entry->attrIR.idtype != bt) {
+        auto* EKind = new AccessKind;
+        if (const typeIR* bt = Expr(b, EKind); a->entry->attrIR.idtype != bt) {
           if (bt->kind == arrayTy && a->entry->attrIR.idtype->kind == arrayTy) {
             if (bt->size == a->entry->attrIR.idtype->size &&
                 bt->More.ArrayAttr.elemTy ==
                     a->entry->attrIR.idtype->More.ArrayAttr.elemTy) {
             } else {
-              std::cout << t->lineno << "������ƥ��" << std::endl;
+              std::cout << t->lineno << " The parameters do not match "
+                        << std::endl;
             }
           } else {
-            std::cout << t->lineno << "�����ǲ������Ͳ�ƥ��" << std::endl;
+            std::cout << t->lineno << " Maybe The parameters Type do not match "
+                      << std::endl;
           }
         }
 
@@ -632,20 +598,18 @@ void callstatement(const TreeNode* t) {
         a = a->next;
       }
       if (a != nullptr || b != nullptr) {
-        std::cout << t->lineno << "����������ƥ��" << std::endl;
+        std::cout << t->lineno << "  The parameters Num do not match "
+                  << std::endl;
       }
-
-      return;
     }
   }
 }
 
-void ifstatment(const TreeNode* t) {
-  // if�﷨��child[0]Ϊif����ʽ,��Ϊ������
+// 条件语句分析处理函数
+void ifStatment(const TreeNode* t) {
   TreeNode* ift = t->child[0];
-  auto* Ekind = new AccessKind;
-  if (Expr(ift, Ekind) != boolPtr) {
-    std::cout << t->lineno << "if����������ʽ����������boolPtr����" << std::endl;
+  if (auto* EKind = new AccessKind; Expr(ift, EKind) != boolPtr) {
+    std::cout << t->lineno << " if not boolPtr " << std::endl;
   }
   TreeNode* thent = t->child[1];
   while (thent != nullptr) {
@@ -659,11 +623,12 @@ void ifstatment(const TreeNode* t) {
   }
 }
 
-void whilestatement(const TreeNode* t) {
+// 循环语句分析处理函数
+void whileStatement(const TreeNode* t) {
   TreeNode* whilet = t->child[0];
-  auto* Ekind = new AccessKind;
-  if (Expr(whilet, Ekind) != boolPtr) {
-    std::cout << t->lineno << "while�������" << std::endl;
+  auto* EKind = new AccessKind;
+  if (Expr(whilet, EKind) != boolPtr) {
+    std::cout << t->lineno << " while not boolPtr " << std::endl;
   }
   TreeNode* dot = t->child[1];
   while (dot != nullptr) {
@@ -672,75 +637,52 @@ void whilestatement(const TreeNode* t) {
   }
 }
 
-void readstatement(TreeNode* t) {
-  auto** Entry = new symbtable*;
-  // for (int i = 0; i < t->name.size(); i++) {}
-  bool flag = FindEntry(t->name[0], true, Entry);
-  if (!flag) {
-    std::cout << t->lineno << "������ʶ��" + t->name[0] + "δ����" << std::endl;
+// 读语句分析处理函数
+void readStatement(TreeNode* t) {
+  auto** Entry = new symbolTable*;
+  if (const bool flag = FindEntry(t->name[0], true, Entry); !flag) {
+    std::cout << t->lineno
+              << " Read the statement identifier " + t->name[0] + " no declare "
+              << std::endl;
   } else {
     if ((*Entry)->attrIR.kind != varKind) {
-      std::cout << t->lineno << "������ʶ��" + t->name[0] + "���Ǳ���"
+      std::cout << t->lineno
+                << " Read the statement identifier " + t->name[0] + " tot var "
                 << std::endl;
     }
     t->table.push_back(*Entry);
   }
 }
 
-// TypeKind writestatementpart(TreeNode* t) {
-//	if (t->kind.exp == IdEK) {
-//		symbtable** Entry = new symbtable*;
-//		bool flag = FindEntry(t->name[0],true, Entry);
-//		if (!flag)
-//			std::cout <<t->lineno<< "д�����" + t->name[0] + "δ����";
-//		else {
-//			if ((*Entry)->attrIR.idtype->kind == arrayTy)
-////�������ͷ���Ԫ�ص��ڲ���ʾ��kind
-//			{
-//				return
-//(*Entry)->attrIR.idtype->More.ArrayAttr.elemTy->kind;
-//			}
-//			else return (*Entry)->attrIR.idtype->kind;
-//		}
-//	}
-//	else if (t->kind.exp == ConstK) {
-//		return intTy;
-//	}
-//	else {
-//		if (assignstatementpart(t->child[0]) ==
-// assignstatementpart(t->child[1])) 			return
-// assignstatementpart(t->child[0]); 		else std::cout
-//<<t->lineno<<"д������ʽ���Ͳ�ƥ��";
-//	}
-//	return intTy;
-// }
-// д��������������
-void writestatement(const TreeNode* t) {
-  auto* Ekind = new AccessKind;
-  Expr(t->child[0], Ekind);
+// 写语句分析处理函数
+void writeStatement(const TreeNode* t) {
+  auto* EKind = new AccessKind;
+  Expr(t->child[0], EKind);
 }
 
-// ������������������
-void returnstatment(TreeNode* t) {}
+// 返回语句分析处理程序
+void returnStatment(TreeNode* t) {}
 
+// 语句序列分析处理函数
 void statement(TreeNode* t) {
   if (t->kind.stmt == IfK) {
-    ifstatment(t);
+    ifStatment(t);
   } else if (t->kind.stmt == WhileK) {
-    whilestatement(t);
+    whileStatement(t);
   } else if (t->kind.stmt == AssignK) {
-    assignstatement(t);
+    assignStatement(t);
   } else if (t->kind.stmt == ReadK) {
-    readstatement(t);
+    readStatement(t);
   } else if (t->kind.stmt == WriteK) {
-    writestatement(t);
+    writeStatement(t);
   } else if (t->kind.stmt == CallK) {
-    callstatement(t);
+    callStatement(t);
   } else if (t->kind.stmt == ReturnK) {
-    returnstatment(t);
+    returnStatment(t);
   }
 }
 
+// 执行体部分分析处理函数
 void Body(TreeNode* t) {
   if (t == nullptr) {
     return;
@@ -751,24 +693,23 @@ void Body(TreeNode* t) {
   }
 }
 
-// ��������Ĵ�����������
+// 数组变量的处理分析函数
 typeIR* arrayVar(TreeNode* t) {
-  auto** Entry = new symbtable*;
-  const bool flag = FindEntry(t->name[0], true, Entry);
-  if (!flag) {
-    std::cout << t->lineno << "array��û�д�Ԫ��" << std::endl;
+  auto** Entry = new symbolTable*;
+  if (const bool flag = FindEntry(t->name[0], true, Entry); !flag) {
+    std::cout << t->lineno << " array has no this value " << std::endl;
   } else {
     if ((*Entry)->attrIR.kind != varKind) {
-      std::cout << "�������Ʋ��Ǳ���" << std::endl;
+      std::cout << " array name not var " << std::endl;
     } else {
       if ((*Entry)->attrIR.idtype->kind != arrayTy) {
-        std::cout << "�����������������" << std::endl;
+        std::cout << " array name not array var " << std::endl;
       } else {
-        auto* ekind = new AccessKind;
-        *ekind = indir;
-        typeIR* index_type = Expr(t->child[0], ekind);
-        if (index_type != intPtr) {
-          std::cout << "�����±����ͷ�����";
+        auto* EKind = new AccessKind;
+        *EKind = indir;
+        if (const typeIR* index_type = Expr(t->child[0], EKind);
+            index_type != intPtr) {
+          std::cout << "array index not int";
         } else {
           return (*Entry)->attrIR.idtype->More.ArrayAttr.elemTy;
         }
@@ -779,27 +720,32 @@ typeIR* arrayVar(TreeNode* t) {
   return nullptr;
 }
 
-// ��¼������������ķ�����������
+// 记录变量中域变量的分析处理函数
 typeIR* recordVar(TreeNode* t) {
-  auto** Entry = new symbtable*;
-  bool flag = FindEntry(t->name[0], true, Entry);
-  if (!flag) {
-    std::cout << t->lineno << "���ű���û�д˼�¼Ԫ��" << std::endl;
+  auto** Entry = new symbolTable*;
+  if (const bool flag = FindEntry(t->name[0], true, Entry); !flag) {
+    std::cout << t->lineno
+              << " This record element is not present in the symbol table "
+              << std::endl;
   } else {
     if ((*Entry)->attrIR.kind != varKind) {
-      std::cout << t->lineno << "��¼���Ʋ��Ǳ���" << std::endl;
+      std::cout << t->lineno << " The record name is not a variable "
+                << std::endl;
     } else {
       if ((*Entry)->attrIR.idtype->kind != recordTy) {
-        std::cout << t->lineno << "��¼�����Ǽ�¼���ͱ���" << std::endl;
+        std::cout << t->lineno
+                  << " The record name is not a record type variable "
+                  << std::endl;
       } else {
-        fieldChain* aa = (*Entry)->attrIR.idtype->More.body;
+        const fieldChain* aa = (*Entry)->attrIR.idtype->More.body;
         while (aa != nullptr) {
-          if (aa->idname == t->child[0]->name[0]) {
+          if (aa->idName == t->child[0]->name[0]) {
             return aa->unitType;
           }
           aa = aa->next;
         }
-        std::cout << t->lineno << "record��û�д�Ԫ��" << std::endl;
+        std::cout << t->lineno << " There is no such element in the record "
+                  << std::endl;
       }
     }
     t->table.push_back(*Entry);
@@ -807,48 +753,50 @@ typeIR* recordVar(TreeNode* t) {
   return nullptr;
 }
 
-void bianli(TreeNode* t) {
+// 遍历语法树，调用相应的函数处理语法树结点
+void traverse(TreeNode* t) {
   if (t == nullptr) {
     return;
   }
-  if (t->nodekind == ProK) {
-    bianli(t->child[0]);
-    bianli(t->child[1]);
-    bianli(t->child[2]);
+  if (t->nodeKind == ProK) {
+    traverse(t->child[0]);
+    traverse(t->child[1]);
+    traverse(t->child[2]);
     return;
   }
-  if (t->nodekind == PheadK) {
+  if (t->nodeKind == PheadK) {
     return;
   }
-  if (t->nodekind == TypeK) {
+  if (t->nodeKind == TypeK) {
     TypeDecPart(t->child[0]);
-    bianli(t->sibling);
+    traverse(t->sibling);
     return;
   }
-  if (t->nodekind == VarK) {
+  if (t->nodeKind == VarK) {
     VarDecList(t->child[0]);
-    bianli(t->sibling);
+    traverse(t->sibling);
     return;
   }
-  if (t->nodekind == ProcDecK) {
+  if (t->nodeKind == ProcDecK) {
     ProcDecPart(t);
     return;
   }
-  if (t->nodekind == StmLK) {
+  if (t->nodeKind == StmLK) {
     Body(t->child[0]);
     return;
   }
-  if (t->nodekind == StmtK) {
+  if (t->nodeKind == StmtK) {
     Body(t->child[0]);
   }
 }
 
+// 语义分析主程序
 void Analyze(TreeNode* currentP) {
   CreatTable();
   initialize();
-  bianli(currentP);
-  Inputsymb(SYMBOL_PATH);
-  Inputdestroysymb(SYMBOL_PATH);
+  traverse(currentP);
+  InputSymbol(SYMBOL_PATH);
+  InputDestroySymbol(SYMBOL_PATH);
   printf("\n");
 }
 

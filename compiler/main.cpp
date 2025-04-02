@@ -3,20 +3,16 @@
 #include "./include/midcode.h"
 #include "./include/optim.h"
 #include "./include/goal.h"
-#include "./include/config.h"
-#include "./include/config.h"
 
 #include <iostream>
 
 int main() {
-  std::cout << "Hello, World!" << std::endl;
-
   // 词法
   scanner::Scanner();
   std::cout << "Token END" << std::endl;
 
   // 语法
-  auto* root = parse::DesParse();
+  auto* root = parse::Parse();
   std::cout << "Parse END" << std::endl;
 
   parse::Analyze(root);

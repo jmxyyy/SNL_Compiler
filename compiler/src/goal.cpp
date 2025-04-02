@@ -20,17 +20,16 @@ namespace goal {
 #define ac1 1
 #define ac 0
 
-std::vector<std::string> gogalcode;
-struct labeltable {
+struct labelTable {
   int label;
-  int destnum;
+  int destNum;
 };
-std::vector<labeltable> labelnow;
-int countnum = 0;
-// int currentLoc;
+
+std::vector<std::string> goalCode;
+std::vector<labelTable> labelNow;
+int countNum = 0;
 int max_num;
-// FILE* goal_code;
-// extern FILE* goalcode;
+
 void outputInstruct(const std::string& errorInfo, const std::string& path) {
   std::ofstream output(path, std::ios::app);
   output << errorInfo << std::endl;
@@ -40,506 +39,381 @@ void outputInstruct(const std::string& errorInfo, const std::string& path) {
 void operandGen(const midcode::ArgRecord* arg) {
   if (arg->form == midcode::ValueForm) {
 
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", ac,
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", ac,
             arg->Attr.value, 0);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
   } else if (arg->form == midcode::LabelForm) {
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", ac,
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", ac,
             arg->Attr.label, 0);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
   } else if (arg->form == midcode::AddrForm) {
     FindAddr(arg);
     if (arg->Attr.Addr.access == parse::dir) {
-      fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", ac, 0, ac);
+      fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", ac, 0, ac);
       fprintf(goal_code, "\n");
-      if (max_num < countnum)
-        max_num = countnum;
+      if (max_num < countNum)
+        max_num = countNum;
     } else {
-      fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", ac1, 0, ac);
+      fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", ac1, 0, ac);
       fprintf(goal_code, "\n");
-      if (max_num < countnum)
-        max_num = countnum;
-      fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", ac, 0, ac1);
+      if (max_num < countNum)
+        max_num = countNum;
+      fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", ac, 0, ac1);
       fprintf(goal_code, "\n");
-      if (max_num < countnum)
-        max_num = countnum;
+      if (max_num < countNum)
+        max_num = countNum;
     }
   }
 }
+
 void FindAddr(const midcode::ArgRecord* arg) {
   const int varLevel = arg->Attr.Addr.dataLevel - 1;
   const int varOff = arg->Attr.Addr.dataOff;
   if (varLevel != -2) {
     FindSp(varLevel);
 
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", ac1, varOff,
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", ac1, varOff,
             0);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
 
-    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "ADD", ac, ac, ac1);
+    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "ADD", ac, ac, ac1);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
   } else {
-    // stringstream ss;
-    // ss << varOff << ",0";
-    // string valueString = ss.str();
-    // outputinstruct("LDC,ac1," + valueString, outputFile);
-    // outputFile << "\n";
-    // gogalcode.push_back("LDC,ac1," + valueString);
-
-    // stringstream ss1;
-    // ss1 << "ADD,ac,sp,ac1";
-    // string valueString1 = ss1.str();
-    // outputinstruct(valueString1, outputFile);
-    // outputFile << "\n";
-    // gogalcode.push_back("ADD,ac,sp,ac1");
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", ac1, varOff,
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", ac1, varOff,
             0);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "ADD", ac, sp, ac1);
+    if (max_num < countNum)
+      max_num = countNum;
+    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "ADD", ac, sp, ac1);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
   }
 }
-void FindSp(int varlevel) {
-  // stringstream ss;
-  // ss << varlevel << ",displayOff";
-  // string valueString = ss.str();
-  // outputinstruct("LDC,ac," + valueString, outputFile);
-  // outputFile << "\n";
-  // gogalcode.push_back("LDC,ac," + valueString);
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", ac, varlevel,
+void FindSp(int varLevel) {
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", ac, varLevel,
           displayOff);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
-  // stringstream ss1;
-  // ss1 << "LD,ac,ac,sp" << endl;
-  // string valueString1 = ss1.str();
-  // outputinstruct(valueString1, outputFile);
-  // gogalcode.push_back("LD,ac,ac,sp");
-  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "ADD", ac, ac, sp);
+  if (max_num < countNum)
+    max_num = countNum;
+  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "ADD", ac, ac, sp);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
-  // stringstream ss2;
-  // ss2 << "LD,ac,0,ac" << endl;
-  // string valueString2 = ss2.str();
-  // outputinstruct(valueString2, outputFile);
-  // gogalcode.push_back("LD,ac,ac,sp");
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", ac, 0, ac);
+  if (max_num < countNum)
+    max_num = countNum;
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", ac, 0, ac);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 }
+
 void codeGen(midcode::MidcodeList* mid_code) {
   /* LDC ac,0,ac1
    LDC ac2,0,ac1
    ST ac,0,ac2*/
-  // stringstream ss;
-  // ss << "LDC,ac,0,ac1" << endl<< "LDC,ac2,0,ac1" << endl<< "ST,ac,0,ac2" <<
-  // endl; gogalcode.push_back("LDC,ac,0,ac1");
-  // gogalcode.push_back("LDC,ac2,0,ac1");
-  // gogalcode.push_back("ST,ac,0,ac2");
-  // string valueString = ss.str();
-  // outputinstruct(valueString, outputFile);
   // ADD, SUB, MULT, DIV, EQC
-
-  goal_code = fopen(GOAL_PATH.c_str(), "w");
-
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", mp, 0, ac);
+  goal_code = fopen(GOAL_MID_PATH.c_str(), "w");
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", mp, 0, ac);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
-
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac, 0, ac);
+  if (max_num < countNum)
+    max_num = countNum;
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac, 0, ac);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  int savedLoc = countnum;
-  countnum++;
-  if (countnum > max_num)
-    max_num = countnum;
+  const int savedLoc = countNum;
+  countNum++;
+  if (countNum > max_num)
+    max_num = countNum;
 
   while (mid_code != nullptr) {
-    if (mid_code->Midcode->codekind == midcode::ADD ||
-        mid_code->Midcode->codekind == midcode::SUB ||
-        mid_code->Midcode->codekind == midcode::MULT ||
-        mid_code->Midcode->codekind == midcode::DIV ||
-        mid_code->Midcode->codekind == midcode::EQC ||
-        mid_code->Midcode->codekind == midcode::LTC)
+    if (mid_code->Midcode->codeKind == midcode::ADD ||
+        mid_code->Midcode->codeKind == midcode::SUB ||
+        mid_code->Midcode->codeKind == midcode::MULT ||
+        mid_code->Midcode->codeKind == midcode::DIV ||
+        mid_code->Midcode->codeKind == midcode::EQC ||
+        mid_code->Midcode->codeKind == midcode::LTC)
       arithGen(mid_code);
-    else if (mid_code->Midcode->codekind == midcode::AADD)
+    else if (mid_code->Midcode->codeKind == midcode::AADD)
       aaddGen(mid_code);
-    else if (mid_code->Midcode->codekind == midcode::READC)
+    else if (mid_code->Midcode->codeKind == midcode::READC)
       readGen(mid_code);
-    else if (mid_code->Midcode->codekind == midcode::WRITEC)
+    else if (mid_code->Midcode->codeKind == midcode::WRITEC)
       writeGen(mid_code);
-    else if (mid_code->Midcode->codekind == midcode::RETURNC)
+    else if (mid_code->Midcode->codeKind == midcode::RETURNC)
       returnGen(mid_code);
-    else if (mid_code->Midcode->codekind == midcode::ASSIG)
+    else if (mid_code->Midcode->codeKind == midcode::ASSIG)
       assignGen(mid_code);
-    else if (mid_code->Midcode->codekind == midcode::LABEL ||
-             mid_code->Midcode->codekind == midcode::WHILESTART ||
-             mid_code->Midcode->codekind == midcode::ENDWHILE)
+    else if (mid_code->Midcode->codeKind == midcode::LABEL ||
+             mid_code->Midcode->codeKind == midcode::WHILESTART ||
+             mid_code->Midcode->codeKind == midcode::ENDWHILE)
       labelGen(mid_code);
-    else if (mid_code->Midcode->codekind == midcode::JUMP)
+    else if (mid_code->Midcode->codeKind == midcode::JUMP)
       jumpGen(mid_code, 1);
-    else if (mid_code->Midcode->codekind == midcode::JUMP0)
+    else if (mid_code->Midcode->codeKind == midcode::JUMP0)
       jump0Gen(mid_code);
-    else if (mid_code->Midcode->codekind == midcode::VALACT)
+    else if (mid_code->Midcode->codeKind == midcode::VALACT)
       valactGen(mid_code);
-    else if (mid_code->Midcode->codekind == midcode::VARACT)
+    else if (mid_code->Midcode->codeKind == midcode::VARACT)
       varactGen(mid_code);
-    else if (mid_code->Midcode->codekind == midcode::CALL)
+    else if (mid_code->Midcode->codeKind == midcode::CALL)
       callGen(mid_code);
-    else if (mid_code->Midcode->codekind == midcode::PENTRY)
+    else if (mid_code->Midcode->codeKind == midcode::PENTRY)
       pentryGen(mid_code);
-    else if (mid_code->Midcode->codekind == midcode::ENDPROC)
-      endprocGen(mid_code);
-    else if (mid_code->Midcode->codekind == midcode::MENTRY)
+    else if (mid_code->Midcode->codeKind == midcode::ENDPROC)
+      endProcGen(mid_code);
+    else if (mid_code->Midcode->codeKind == midcode::MENTRY)
       mentryGen(mid_code, savedLoc);
     else
       printf("codeGen bug\n");
     mid_code = mid_code->next;
   }
-  // stringstream ss1;
-  // ss1 << "HALT,0,0,0" << endl;
-  // string valueString = ss1.str();
-  // outputinstruct(valueString1, outputFile);
-  // gogalcode.push_back("HALT,0,0,0");
-  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "HALT", 0, 0, 0);
-  if (max_num < countnum)
-    max_num = countnum;
+  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "HALT", 0, 0, 0);
+  if (max_num < countNum)
+    max_num = countNum;
 
   fclose(goal_code);
+
+  // sort
+  // FILE* input_file = fopen("goal_code.txt", "r");
+  // if (input_file == NULL) {
+  //   printf("无法打开输入文件。\n");
+  //   return 1;
+  // }
+
+  // 读取并解析文件内容
+  // CodeLine lines[1000];
+  // int line_count = 0;
+  // while (fscanf(input_file, "%d:%99[^\n]", &lines[line_count].index, lines[line_count].code) == 2) {
+  //   fgetc(input_file); // 读取换行符
+  //   line_count++;
+  // }
+  // fclose(input_file);
+  //
+  // // 对解析后的内容进行排序
+  // qsort(lines, line_count, sizeof(CodeLine), compare);
+  //
+  // // 将排序后的内容写入文件
+  // FILE* output_file = fopen("sorted_goal_code.txt", "w");
+  // if (output_file == NULL) {
+  //   printf("无法打开输出文件。\n");
+  //   return 1;
+  // }
+  // for (int i = 0; i < line_count; ++i) {
+  //   if(i!=line_count-1)
+  //     fprintf(output_file, "%3d: %s\n", lines[i].index, lines[i].code);
+  //   else  fprintf(output_file, "%3d: %s", lines[i].index, lines[i].code);
+  // }
+  // fclose(output_file);
 }
+
 void arithGen(const midcode::MidcodeList* mid_code) {
   operandGen(mid_code->Midcode->op1);
-  // stringstream ss;
-  // ss << "LDA,ac2,0,ac" <<endl;
-  // string valueString = ss.str();
-  // outputinstruct(valueString, outputFile);
-  // gogalcode.push_back("LDA,ac2,0,ac");
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", ac2, 0, ac);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", ac2, 0, ac);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
   operandGen(mid_code->Midcode->op2);
-  /* stringstream ss1;
-   ss1 << "LDA,ac1,0,ac2" << endl;
-   string valueString1 = ss1.str();
-   outputinstruct(valueString1, outputFile);
-   gogalcode.push_back("LDA,ac1,0,ac2");*/
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", ac1, 0, ac2);
+
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", ac1, 0, ac2);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
-  if (mid_code->Midcode->codekind == midcode::ADD) {
-    // stringstream ss2;
-    // ss2 << "ADD,ac,ac1,ac" << endl;
-    // string valueString2 = ss2.str();
-    // outputinstruct(valueString2, outputFile);
-    // gogalcode.push_back("ADD,ac,ac1,ac");
-    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "ADD", ac, ac1, ac);
+  if (max_num < countNum)
+    max_num = countNum;
+  if (mid_code->Midcode->codeKind == midcode::ADD) {
+    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "ADD", ac, ac1, ac);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-  } else if (mid_code->Midcode->codekind == midcode::SUB) {
-    // stringstream ss2;
-    // ss2 << "SUB,ac,ac1,ac" << endl;
-    // string valueString2 = ss2.str();
-    // outputinstruct(valueString2, outputFile);
-    // gogalcode.push_back("SUB,ac,ac1,ac");
-    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "SUB", ac, ac1, ac);
+    if (max_num < countNum)
+      max_num = countNum;
+  } else if (mid_code->Midcode->codeKind == midcode::SUB) {
+    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "SUB", ac, ac1, ac);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-  } else if (mid_code->Midcode->codekind == midcode::MULT) {
-    // stringstream ss2;
-    // ss2 << "MUL,ac,ac1,ac" << endl;
-    // string valueString2 = ss2.str();
-    // outputinstruct(valueString2, outputFile);
-    // gogalcode.push_back("MUL,ac,ac1,ac");
-    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "MUL", ac, ac1, ac);
+    if (max_num < countNum)
+      max_num = countNum;
+  } else if (mid_code->Midcode->codeKind == midcode::MULT) {
+    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "MUL", ac, ac1, ac);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-  } else if (mid_code->Midcode->codekind == midcode::DIV) {
-    // stringstream ss2;
-    // ss2 << "DIV,ac,ac1,ac" << endl;
-    // string valueString2 = ss2.str();
-    // outputinstruct(valueString2, outputFile);
-    // gogalcode.push_back("DIV,ac,ac1,ac");
-    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "DIV", ac, ac1, ac);
+    if (max_num < countNum)
+      max_num = countNum;
+  } else if (mid_code->Midcode->codeKind == midcode::DIV) {
+    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "DIV", ac, ac1, ac);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-  } else if (mid_code->Midcode->codekind == midcode::LTC) {
-    // stringstream ss2;
-    // ss2 <<"SUB,ac,ac1,ac"<< endl<< "JLT,ac,2,pc"<<endl<< "LDC,ac,0,0"<<endl<<
-    // "LDA,pc,1,pc"<<endl<< "LDC,ac,1,0"<<endl; string valueString2 =
-    // ss2.str(); outputinstruct(valueString2, outputFile);
-    // gogalcode.push_back("SUB,ac,ac1,ac");
-    // gogalcode.push_back("JLT,ac,2,pc");
-    // gogalcode.push_back("LDC,ac,0,0");
-    // gogalcode.push_back("LDA,pc,1,pc");
-    // gogalcode.push_back("LDC,ac,1,0");
-    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "SUB", ac, ac1, ac);
+    if (max_num < countNum)
+      max_num = countNum;
+  } else if (mid_code->Midcode->codeKind == midcode::LTC) {
+    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "SUB", ac, ac1, ac);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "JLT", ac, 2, pc);
+    if (max_num < countNum)
+      max_num = countNum;
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "JLT", ac, 2, pc);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", ac, 0, 0);
+    if (max_num < countNum)
+      max_num = countNum;
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", ac, 0, 0);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", pc, 1, pc);
+    if (max_num < countNum)
+      max_num = countNum;
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", pc, 1, pc);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", ac, 1, 0);
+    if (max_num < countNum)
+      max_num = countNum;
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", ac, 1, 0);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-  } else if (mid_code->Midcode->codekind == midcode::EQC) {
-    // stringstream ss2;
-    // ss2 << "SUB,ac,ac1,ac" << endl << "JEQ,ac,2,pc" << endl << "LDC,ac,0,0"
-    // << endl << "LDA,pc,1,pc" << endl << "LDC,ac,1,0" << endl; string
-    // valueString2 = ss2.str(); outputinstruct(valueString2, outputFile);
-    // gogalcode.push_back("SUB,ac,ac1,ac");
-    // gogalcode.push_back("JEQ,ac,2,pc");
-    // gogalcode.push_back("LDC,ac,0,0");
-    // gogalcode.push_back("LDA,pc,1,pc");
-    // gogalcode.push_back("LDC,ac,1,0");
-    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "SUB", ac, ac1, ac);
+    if (max_num < countNum)
+      max_num = countNum;
+  } else if (mid_code->Midcode->codeKind == midcode::EQC) {
+    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "SUB", ac, ac1, ac);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "JEQ", ac, 2, pc);
+    if (max_num < countNum)
+      max_num = countNum;
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "JEQ", ac, 2, pc);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", ac, 0, 0);
+    if (max_num < countNum)
+      max_num = countNum;
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", ac, 0, 0);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", pc, 1, pc);
+    if (max_num < countNum)
+      max_num = countNum;
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", pc, 1, pc);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", ac, 1, 0);
+    if (max_num < countNum)
+      max_num = countNum;
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", ac, 1, 0);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
   }
-  // stringstream ss3;
-  // ss3 << "LDA,ac2,0,ac" << endl;
-  // string valueString3 = ss3.str();
-  // outputinstruct(valueString3, outputFile);
-  // gogalcode.push_back("LDA,ac2,0,ac");
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", ac2, 0, ac);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", ac2, 0, ac);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
   FindAddr(mid_code->Midcode->op3);
-
-  // stringstream ss4;
-  // ss4<< "LDA,ac1,0,ac2" << endl <<"ST,ac1,0,ac"<<endl;
-  // string valueString4 = ss4.str();
-  // outputinstruct(valueString4, outputFile);
-  // gogalcode.push_back("LDA,ac1,0,ac2");
-  // gogalcode.push_back("ST,ac1,0,ac");
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", ac1, 0, ac2);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", ac1, 0, ac2);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac1, 0, ac);
+  if (max_num < countNum)
+    max_num = countNum;
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac1, 0, ac);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 }
+
 void aaddGen(const midcode::MidcodeList* mid_code) {
   if (mid_code->Midcode->op1->Attr.Addr.access == parse::dir) {
     FindAddr(mid_code->Midcode->op1);
   } else if (mid_code->Midcode->op1->Attr.Addr.access == parse::indir) {
     FindAddr(mid_code->Midcode->op1);
-    // stringstream ss;
-    // ss << "LD,ac,0,ac" << endl;
-    // string valueString = ss.str();
-    // outputinstruct(valueString, outputFile);
-    // gogalcode.push_back("LD,ac,0,ac");
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", ac, 0, ac);
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", ac, 0, ac);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
   }
-  // stringstream ss1;
-  // ss1 << "LDA,ac2,0,ac" << endl;
-  // string valueString1 = ss1.str();
-  // outputinstruct(valueString1, outputFile);
-  // gogalcode.push_back("LDA,ac2,0,ac");
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", ac2, 0, ac);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", ac2, 0, ac);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
   operandGen(mid_code->Midcode->op2);
-
-  // stringstream ss2;
-  // ss2 << "ADD,ac2,ac2,ac" << endl;
-  // string valueString2 = ss2.str();
-  // outputinstruct(valueString2, outputFile);
-  // gogalcode.push_back("ADD,ac2,ac2,ac");
-  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "ADD", ac2, ac2, ac);
+  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "ADD", ac2, ac2, ac);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
   FindAddr(mid_code->Midcode->op3);
-
-  // stringstream ss3;
-  // ss3 << "ST,ac2,0,ac" << endl;
-  // string valueString3 = ss3.str();
-  // outputinstruct(valueString3, outputFile)
-  // gogalcode.push_back("ST,ac2,0,ac");
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac2, 0, ac);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac2, 0, ac);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 }
+
 void readGen(const midcode::MidcodeList* mid_code) {
-  // stringstream ss1;
-  // ss1 << "IN,ac2,0,0" << endl;
-  // string valueString1 = ss1.str();
-  // outputinstruct(valueString1, outputFile);
-  // gogalcode.push_back("IN,ac2,0,0");
-  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "IN", ac2, 0, 0);
+  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "IN", ac2, 0, 0);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
   FindAddr(mid_code->Midcode->op1);
 
   if (mid_code->Midcode->op1->Attr.Addr.access == parse::dir) {
-    // stringstream ss2;
-    // ss2 << "LD,ac1,0,ac" << endl<<"ST,ac2,0,ac1"<<endl;
-    // string valueString2 = ss2.str();
-    // outputinstruct(valueString2, outputFile);
-    // gogalcode.push_back("LD,ac1,0,ac");
-    // gogalcode.push_back("ST,ac2,0,ac1");
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac2, 0, ac);
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac2, 0, ac);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
   } else {
-    // stringstream ss2;
-    // ss2 <<"ST,ac2,0,ac1" << endl;
-    // string valueString2 = ss2.str();
-    // outputinstruct(valueString2, outputFile);
-    // gogalcode.push_back("ST,ac2,0,ac1");
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", ac1, 0, ac);
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", ac1, 0, ac);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac2, 0, ac1);
+    if (max_num < countNum)
+      max_num = countNum;
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac2, 0, ac1);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
   }
 }
+
 void writeGen(const midcode::MidcodeList* mid_code) {
   operandGen(mid_code->Midcode->op1);
-  // stringstream ss2;
-  // ss2 << "OUT,ac,0,0" << endl;
-  // string valueString2 = ss2.str();
-  // outputinstruct(valueString2, outputFile);
-  // gogalcode.push_back"OUT,ac,0,0");
-  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "OUT", ac, 0, 0);
+  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "OUT", ac, 0, 0);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 }
-void returnGen(midcode::MidcodeList* mid_code) { endprocGen(mid_code); }
+
+void returnGen(midcode::MidcodeList* mid_code) { endProcGen(mid_code); }
 
 void assignGen(const midcode::MidcodeList* mid_code) {
-  FindAddr(mid_code->Midcode->op1);
-  // stringstream ss2;
-  // ss2 << "LDA,ac2,0,ac" << endl;
-  // string valueString2 = ss2.str();
-  // outputinstruct(valueString2, outputFile);
-  // gogalcode.push_back("LDA,ac2,0,ac");
-
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", ac2, 0, ac);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", ac2, 0, ac);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
   operandGen(mid_code->Midcode->op2);
   if (mid_code->Midcode->op1->Attr.Addr.access == parse::dir) {
-    // stringstream ss3;
-    // ss3 << "LD,ac1,0,ac2" << endl<<"ST,ac,0,ac1"<<endl;
-    // string valueString3 = ss3.str();
-    // outputinstruct(valueString3, outputFile);
-    // gogalcode.push_back("LD,ac1,0,ac2");
-    // gogalcode.push_back("ST,ac,0,ac1");
-    // ac2�Ǳ���ֵ�Ķ���
-
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac, 0, ac2);
+    // ac2是被赋值的东西
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac, 0, ac2);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
   } else if (mid_code->Midcode->op1->Attr.Addr.access == parse::indir) {
-    // stringstream ss3;
-    // ss3 << "ST,ac,0,ac2" << endl;
-    // string valueString3 = ss3.str();
-    // outputinstruct(valueString3, outputFile);
-    // gogalcode.push_back("ST,ac,0,ac2");
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", ac1, 0, ac2);
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", ac1, 0, ac2);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac, 0, ac1);
+    if (max_num < countNum)
+      max_num = countNum;
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac, 0, ac1);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
   }
 }
 
 void labelGen(const midcode::MidcodeList* mid_code) {
   int label = mid_code->Midcode->op1->Attr.label;
-  int currentLoc = countnum;
+  int currentLoc = countNum;
   int flag = 0;
-  for (const auto& i : labelnow) {
+  for (const auto& i : labelNow) {
     if (label == i.label) {
       flag = 1;
-      countnum = i.destnum;
-      fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", pc,
+      countNum = i.destNum;
+      fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", pc,
               currentLoc, 0);
       fprintf(goal_code, "\n");
-      if (max_num < countnum)
-        max_num = countnum;
-      countnum = max_num;
+      if (max_num < countNum)
+        max_num = countNum;
+      countNum = max_num;
       break;
     }
   }
   if (flag == 0) {
-    labelnow.push_back(labeltable{label, currentLoc});
+    labelNow.push_back(labelTable{label, currentLoc});
   }
 }
-// Ԥ�������ַ��
+
+// 预留回填地址
 void jumpGen(const midcode::MidcodeList* mid_code, int i) {
   int label;
   if (i == 1)
@@ -547,349 +421,313 @@ void jumpGen(const midcode::MidcodeList* mid_code, int i) {
   else
     label = mid_code->Midcode->op2->Attr.label;
   int flag = 0;
-  for (auto& i : labelnow) {
+  for (auto& i : labelNow) {
     if (label == i.label) {
       flag = 1;
-      // stringstream ss;
-      // ss <<labelnow[i].destnum<< ",0";
-      // string valueString = ss.str();
-      // outputinstruct("LDC,pc," + valueString, outputFile);
-      // outputFile << "\n";
-      // gogalcode.push_back("LDC,pc," + valueString);
-      fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", pc,
-              i.destnum, 0);
+      fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", pc,
+              i.destNum, 0);
       fprintf(goal_code, "\n");
-      if (max_num < countnum)
-        max_num = countnum;
+      if (max_num < countNum)
+        max_num = countNum;
       break;
     }
   }
   if (flag == 0) {
-    int currentLoc = countnum;
-    countnum += 1;
-    if (countnum > max_num)
-      max_num = countnum;
-    labelnow.push_back(labeltable{label, currentLoc});
+    const int currentLoc = countNum;
+    countNum += 1;
+    if (countNum > max_num)
+      max_num = countNum;
+    labelNow.push_back(labelTable{label, currentLoc});
   }
 }
-// ������
+
+// TODO
 void jump0Gen(const midcode::MidcodeList* mid_code) {
   operandGen(mid_code->Midcode->op1);
-  // outputinstruct("LDA,ac2,0,ac", outputFile);
-  // outputFile << "\n";
-  // gogalcode.push_back("LDA,ac2,0,ac");
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", ac2, 0, ac);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", ac2, 0, ac);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  int savedLoc = countnum;
+  const int savedLoc = countNum;
 
-  countnum += 1;
+  countNum += 1;
 
-  if (countnum > max_num)
-    max_num = countnum;
+  if (countNum > max_num)
+    max_num = countNum;
   jumpGen(mid_code, 2);
-  int currentLoc = countnum;
-  countnum += 0;
+  int currentLoc = countNum;
+  countNum += 0;
 
-  if (countnum > max_num)
-    max_num = countnum;
-  countnum = savedLoc;
-  // emitRM_Abs("JNE",ac2,currentLoc,"not jump");ac2������0������pc
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum, "JNE", ac2,
-          currentLoc - (countnum + 1), pc);
+  if (countNum > max_num)
+    max_num = countNum;
+  countNum = savedLoc;
+  // emitRM_Abs("JNE",ac2,currentLoc,"not jump"); ac2不等于0就跳到pc
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum, "JNE", ac2,
+          currentLoc - (countNum + 1), pc);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
-  ++countnum;
-  if (max_num < countnum)
-    max_num = countnum;
-  countnum = max_num;
+  if (max_num < countNum)
+    max_num = countNum;
+  ++countNum;
+  if (max_num < countNum)
+    max_num = countNum;
+  countNum = max_num;
 }
+
 void valactGen(const midcode::MidcodeList* mid_code) {
   int paramOff = mid_code->Midcode->op2->Attr.value;
   operandGen(mid_code->Midcode->op1);
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac, paramOff,
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac, paramOff,
           top);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
-  // stringstream ss3;
-  // ss3 <<paramOff<<",top";
-  // string valueString3 = ss3.str();
-  // outputinstruct("ST,ac," + valueString3, outputFile);
-  // outputFile << "\n";
-  // gogalcode.push_back("ST,ac," + valueString3);
+  if (max_num < countNum)
+    max_num = countNum;
 }
+
 void varactGen(const midcode::MidcodeList* mid_code) {
   int paramOff = mid_code->Midcode->op2->Attr.value;
   if (mid_code->Midcode->op1->Attr.Addr.access == parse::dir) {
     FindAddr(mid_code->Midcode->op1);
-    // outputinstruct("LD,ac,0,ac", outputFile);
-    // outputFile << "\n";
-    // gogalcode.push_back("LD,ac,0,ac");
   } else {
     FindAddr(mid_code->Midcode->op1);
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", ac, 0, ac);
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", ac, 0, ac);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
   }
-  // stringstream ss3;
-  // ss3 << paramOff << ",top";
-  // string valueString3 = ss3.str();
-  // outputinstruct("ST,ac," + valueString3, outputFile);
-  // outputFile << "\n";
-  // gogalcode.push_back("ST,ac," + valueString3);
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac, paramOff,
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac, paramOff,
           top);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 }
-// ������
+
+// TODO
 void callGen(const midcode::MidcodeList* mid_code) {
-  // outputinstruct("ST,displayOff,6,top",outputFile);
-  // outputFile << "\n";
-  // gogalcode.push_back("ST,displayOff,6,top");
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", displayOff, 6,
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", displayOff, 6,
           top);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
   int Noff = mid_code->Midcode->op3->Attr.value;
-
-  // outputinstruct("LDC,displayOff,Noff,0", outputFile);
-  // outputFile << "\n";
-  // gogalcode.push_back("LDC,displayOff,Noff,0");
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", displayOff,
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", displayOff,
           Noff, 0);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  int currentLoc = countnum + 3;
-  countnum += 0;
-  if (max_num < countnum)
-    max_num = countnum;
-  // stringstream ss3;
-  // ss3 << currentLoc<< ",0";
-  // string valueString3 = ss3.str();
-  // outputinstruct("LDC,ac," + valueString3, outputFile);
-  // outputFile << "\n";
-  // gogalcode.push_back("LDC,ac," + valueString);
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", ac, currentLoc,
+  const int currentLoc = countNum + 3;
+  countNum += 0;
+  if (max_num < countNum)
+    max_num = countNum;
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", ac, currentLoc,
           0);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
-  // outputinstruct("ST,ac,1,top", outputFile);
-  // gogalcode.push_back("ST,ac,1,top");
-  // jumpGen(midcode->Midcode->op1);
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac, 1, top);
+  if (max_num < countNum)
+    max_num = countNum;
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac, 1, top);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
   jumpGen(mid_code, 1);
 }
 
 void pentryGen(const midcode::MidcodeList* mid_code) {
   labelGen(mid_code);
-  int activity_size = mid_code->Midcode->op2->Attr.value;
-  // level
-  // �Ҹ���һ�£�������������������������������������������������������������������������������������
-  int level_temp = mid_code->Midcode->op3->Attr.value;
-  // ����sp
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", sp, 0, top);
+  const int activity_size = mid_code->Midcode->op2->Attr.value;
+  const int level_temp = mid_code->Midcode->op3->Attr.value;
+  // 保存sp
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", sp, 0, top);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
-  // ����Ĵ���
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac, 3, top);
+  if (max_num < countNum)
+    max_num = countNum;
+  // 保存寄存器
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac, 3, top);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac1, 4, top);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac1, 4, top);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac2, 5, top);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac2, 5, top);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
-  // ������Ϣ
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", ac, level_temp,
+  if (max_num < countNum)
+    max_num = countNum;
+  // 过程信息
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", ac, level_temp,
           0);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac, 2, top);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac, 2, top);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
   // dipplay
   for (int i = 0; i < level_temp; i++) {
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", ac1, 6, top);
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", ac1, 6, top);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
 
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", ac1, i, ac1);
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", ac1, i, ac1);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
 
-    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "ADD", ac1, ac1, sp);
+    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "ADD", ac1, ac1, sp);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
 
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", ac, 0, ac1);
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", ac, 0, ac1);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
 
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", ac1, i,
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", ac1, i,
             displayOff);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
 
-    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "ADD", ac1, ac1, top);
+    fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "ADD", ac1, ac1,
+            top);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
 
-    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac, 0, ac1);
+    fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac, 0, ac1);
     fprintf(goal_code, "\n");
-    if (max_num < countnum)
-      max_num = countnum;
+    if (max_num < countNum)
+      max_num = countNum;
   }
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", ac, level_temp,
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", ac, level_temp,
           displayOff);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "ADD", ac, top, ac);
+  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "ADD", ac, top, ac);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", top, 0, ac);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", top, 0, ac);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "LDA", sp, 0, top);
+  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "LDA", sp, 0, top);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countnum++, "LDA", top,
+  fprintf(goal_code, "%3d:  %5s  %d,%d,%d ", countNum++, "LDA", top,
           activity_size, top);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 }
 
-void endprocGen(midcode::MidcodeList* mid_code) {
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", ac, 3, sp);
+void endProcGen(midcode::MidcodeList* mid_code) {
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", ac, 3, sp);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", ac1, 4, sp);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", ac1, 4, sp);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", ac2, 5, sp);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", ac2, 5, sp);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", displayOff, 6,
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", displayOff, 6,
           sp);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", top, 0, sp);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", top, 0, sp);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", sp, 0, sp);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", sp, 0, sp);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LD", pc, 1, top);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LD", pc, 1, top);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 }
+
 void mentryGen(const midcode::MidcodeList* mid_code, int save) {
-  int currentLoc = countnum;
-  countnum += 0;
-  if (max_num < countnum)
-    max_num = countnum;
+  const int currentLoc = countNum;
+  countNum += 0;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  countnum = save;
+  countNum = save;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", pc, currentLoc,
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", pc, currentLoc,
           0);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  countnum = max_num;
+  countNum = max_num;
 
-  // ��ʼ���Ĵ���
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", ac, 0, 0);
+  // 初始化寄存器
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", ac, 0, 0);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", ac1, 0, 0);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", ac1, 0, 0);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", ac2, 0, 0);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", ac2, 0, 0);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
   // sp
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac, 0, sp);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac, 0, sp);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
   // displayoff
   int Noff = mid_code->Midcode->op3->Attr.value;
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDC", displayOff,
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDC", displayOff,
           Noff, 0);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
-  // display��
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "ST", ac, 0,
+  if (max_num < countNum)
+    max_num = countNum;
+  // display
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "ST", ac, 0,
           displayOff);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
-  // ��дtop
+  if (max_num < countNum)
+    max_num = countNum;
+  // 填写top
   const int temp = mid_code->Midcode->op2->Attr.value;
-  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countnum++, "LDA", top, temp, sp);
+  fprintf(goal_code, "%3d:  %5s  %d,%d(%d) ", countNum++, "LDA", top, temp, sp);
   fprintf(goal_code, "\n");
-  if (max_num < countnum)
-    max_num = countnum;
+  if (max_num < countNum)
+    max_num = countNum;
 }
 
 } // namespace goal

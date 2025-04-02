@@ -16,7 +16,7 @@ inline FILE* goal_code;
 void outputInstruct(const std::string& errorInfo, const std::string& path);
 void operandGen(const midcode::ArgRecord* arg);
 void FindAddr(const midcode::ArgRecord* arg);
-void FindSp(int varlevel);
+void FindSp(int varLevel);
 void codeGen(midcode::MidcodeList* mid_code);
 void arithGen(const midcode::MidcodeList* mid_code);
 void aaddGen(const midcode::MidcodeList* mid_code);
@@ -31,7 +31,7 @@ void valactGen(const midcode::MidcodeList* mid_code);
 void varactGen(const midcode::MidcodeList* mid_code);
 void callGen(const midcode::MidcodeList* mid_code);
 void pentryGen(const midcode::MidcodeList* mid_code);
-void endprocGen(midcode::MidcodeList* mid_code);
+void endProcGen(midcode::MidcodeList* mid_code);
 void mentryGen(const midcode::MidcodeList* mid_code, int save);
 
 } // namespace goal

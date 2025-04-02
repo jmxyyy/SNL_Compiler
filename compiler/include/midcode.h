@@ -12,7 +12,7 @@
 namespace midcode {
 
 enum formKind { ValueForm, LabelForm, AddrForm };
-enum codekindtype {
+enum codeKindType {
   ADD,
   SUB,
   MULT,
@@ -36,27 +36,32 @@ enum codekindtype {
   WHILESTART,
   ENDWHILE
 };
+
 struct AddrStruct {
   std::string name;
   int dataLevel;
   int dataOff;
   parse::AccessKind access;
 };
+
 struct AttrStruct {
   int value{};
   int label{};
   AddrStruct Addr;
 };
+
 struct ArgRecord {
   formKind form;
   AttrStruct Attr;
 };
+
 struct MidcodeStruct {
-  codekindtype codekind;
+  codeKindType codeKind;
   ArgRecord* op1;
   ArgRecord* op2;
   ArgRecord* op3;
 };
+
 struct MidcodeList {
   MidcodeList* pre;
   MidcodeStruct* Midcode;
@@ -69,30 +74,31 @@ inline int offset;
 inline MidcodeList* firstDummy;
 inline MidcodeList* lastDummy;
 inline int off;
-inline int midnum;
+inline int midNum;
 
-bool FindEntry(std::string id, bool flag, parse::symbtable** Entry);
+bool FindEntry(std::string id, bool flag, parse::symbolTable** Entry);
 bool Enter(std::string Id, parse::AttributeIR* AttribP,
-           parse::symbtable** Entry);
+           parse::symbolTable** Entry);
 bool FindField(std::string Id, parse::fieldChain* head,
                parse::fieldChain** Entry);
 MidcodeList* GenMidCode(const parse::TreeNode* t);
 void PrintMidCode(const MidcodeList* dummy);
 
 ArgRecord* NewTemp(parse::AccessKind access);
-ArgRecord* ARGvalue(int value);
+ArgRecord* ARGValue(int value);
 int NewLabel();
 ArgRecord* ARGLabel(int label);
 ArgRecord* ARGAddr(const std::string& id, int level, int off1,
                    parse::AccessKind access);
-MidcodeList* GenCode(codekindtype codekind, ArgRecord* first, ArgRecord* second,
+MidcodeList* GenCode(codeKindType codeKind, ArgRecord* first, ArgRecord* second,
                      ArgRecord* third);
 void GenProDec(const parse::TreeNode* t);
-void Genbody(const parse::TreeNode* t);
+void GenBody(const parse::TreeNode* t);
 void GenStatement(parse::TreeNode* t);
 void GenAssignS(const parse::TreeNode* t);
 ArgRecord* GenVar(const parse::TreeNode* t);
-ArgRecord* GenArray(ArgRecord* V1arg, const parse::TreeNode* t, int low, int size);
+ArgRecord* GenArray(ArgRecord* V1arg, const parse::TreeNode* t, int low,
+                    int size);
 ArgRecord* GenField(ArgRecord* V1arg, const parse::TreeNode* t,
                     const parse::fieldChain* head);
 ArgRecord* GenExpr(const parse::TreeNode* t);

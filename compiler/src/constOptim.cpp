@@ -2,8 +2,8 @@
 // created by jmxyyy
 //
 
-#include "../include/optim.h"
 #include "../include/midcode.h"
+#include "../include/optim.h"
 
 #include <iostream>
 
@@ -22,39 +22,41 @@ bool FindConsT(const midcode::ArgRecord* x, ConstDefT** Entry) {
   return false;
 }
 
+// 划分基本块
 void DivBaseBlock() {
   midcode::MidcodeList* now = midcode::firstDummy;
-  BaseBlocktype tmp;
+  BaseBlockType tmp;
   tmp.begin = tmp.end = nullptr;
   if (now != nullptr) {
     tmp.begin = now;
   }
   while (now != nullptr) {
-    if (now->Midcode->codekind == midcode::ENDWHILE ||
-        now->Midcode->codekind == midcode::RETURNC ||
-        now->Midcode->codekind == midcode::JUMP ||
-        now->Midcode->codekind == midcode::JUMP0 ||
-        now->Midcode->codekind == midcode::CALL ||
-        now->Midcode->codekind == midcode::ENDPROC ||
+    // 碰到跳转，函数，读，则结束
+    if (now->Midcode->codeKind == midcode::ENDWHILE ||
+        now->Midcode->codeKind == midcode::RETURNC ||
+        now->Midcode->codeKind == midcode::JUMP ||
+        now->Midcode->codeKind == midcode::JUMP0 ||
+        now->Midcode->codeKind == midcode::CALL ||
+        now->Midcode->codeKind == midcode::ENDPROC ||
         (now->next != nullptr &&
-         now->next->Midcode->codekind == midcode::LABEL) ||
+         now->next->Midcode->codeKind == midcode::LABEL) ||
         (now->next != nullptr &&
-         now->next->Midcode->codekind == midcode::WHILESTART) ||
+         now->next->Midcode->codeKind == midcode::WHILESTART) ||
         (now->next != nullptr &&
-         now->next->Midcode->codekind == midcode::PENTRY) ||
+         now->next->Midcode->codeKind == midcode::PENTRY) ||
         (now->next != nullptr &&
-         now->next->Midcode->codekind == midcode::MENTRY)) {
+         now->next->Midcode->codeKind == midcode::MENTRY)) {
       tmp.end = now;
       BaseBlock.push_back(tmp);
       tmp.begin = nullptr;
       tmp.end = nullptr;
       if (now->next != nullptr) {
         tmp.begin = now->next;
-        // now = now->next;
       }
     }
 
     if (now->next == nullptr) {
+      // 还有基本块没结束
       if (tmp.begin != nullptr && tmp.end == nullptr) {
         tmp.end = now;
         BaseBlock.push_back(tmp);
@@ -63,7 +65,9 @@ void DivBaseBlock() {
     now = now->next;
   }
 }
+
 void AppendTable(midcode::ArgRecord* x, const int result) {
+  // 表中已存在
   if (auto** Entry = new ConstDefT*; FindConsT(x, Entry)) {
     (*Entry)->constValue = result;
   } else {
@@ -79,7 +83,9 @@ void AppendTable(midcode::ArgRecord* x, const int result) {
       firstConstDefT = newConstDefT;
   }
 }
+
 void DelConst(const midcode::ArgRecord* x) {
+  // 若找到则删除
   if (auto** Entry = new ConstDefT*; FindConsT(x, Entry)) {
     if ((*Entry) == firstConstDefT) {
       firstConstDefT = (*Entry)->next;
@@ -96,7 +102,8 @@ void DelConst(const midcode::ArgRecord* x) {
     }
   }
 }
-void SubstiArg(const midcode::MidcodeList* x, int i) {
+void SubstiArg(const midcode::MidcodeList* x, const int i) {
+  // 选择要处理的运算分量
   midcode::ArgRecord** y = nullptr;
   if (i == 1) {
     y = &x->Midcode->op1;
@@ -110,11 +117,11 @@ void SubstiArg(const midcode::MidcodeList* x, int i) {
     if (bool constflag = FindConsT((*y), Entry); constflag) {
       const int value = (*Entry)->constValue;
       if (i == 1)
-        x->Midcode->op1 = midcode::ARGvalue(value); // ��op1,op2�ĳ�ָ��
+        x->Midcode->op1 = midcode::ARGValue(value); // ��op1,op2�ĳ�ָ��
       if (i == 2)
-        x->Midcode->op2 = midcode::ARGvalue(value);
+        x->Midcode->op2 = midcode::ARGValue(value);
       if (i == 3)
-        x->Midcode->op3 = midcode::ARGvalue(value);
+        x->Midcode->op3 = midcode::ARGValue(value);
     }
   }
 }
@@ -125,17 +132,17 @@ bool ArithC(const midcode::MidcodeList* x) {
   SubstiArg(x, 2);
   if (x->Midcode->op2->form == midcode::ValueForm &&
       x->Midcode->op1->form == midcode::ValueForm) {
-    if (x->Midcode->codekind == midcode::ADD)
+    if (x->Midcode->codeKind == midcode::ADD)
       result = x->Midcode->op1->Attr.value + x->Midcode->op2->Attr.value;
-    else if (x->Midcode->codekind == midcode::SUB)
+    else if (x->Midcode->codeKind == midcode::SUB)
       result = x->Midcode->op1->Attr.value - x->Midcode->op2->Attr.value;
-    else if (x->Midcode->codekind == midcode::MULT)
+    else if (x->Midcode->codeKind == midcode::MULT)
       result = x->Midcode->op1->Attr.value * x->Midcode->op2->Attr.value;
-    else if (x->Midcode->codekind == midcode::DIV)
+    else if (x->Midcode->codeKind == midcode::DIV)
       result = x->Midcode->op1->Attr.value / x->Midcode->op2->Attr.value;
-    else if (x->Midcode->codekind == midcode::LTC)
+    else if (x->Midcode->codeKind == midcode::LTC)
       result = x->Midcode->op1->Attr.value < x->Midcode->op2->Attr.value;
-    else if (x->Midcode->codekind == midcode::EQC)
+    else if (x->Midcode->codeKind == midcode::EQC)
       result = (x->Midcode->op1->Attr.value == x->Midcode->op2->Attr.value);
     AppendTable(x->Midcode->op3, result);
     Delflag = true;
@@ -144,16 +151,16 @@ bool ArithC(const midcode::MidcodeList* x) {
 }
 
 void OptiBlock(int i) {
-  midcode::MidcodeList* now = BaseBlock[i].begin;
+  const midcode::MidcodeList* now = BaseBlock[i].begin;
   while (true) {
-    if (now->Midcode->codekind == midcode::ADD ||
-        now->Midcode->codekind == midcode::SUB ||
-        now->Midcode->codekind == midcode::MULT ||
-        now->Midcode->codekind == midcode::DIV ||
-        now->Midcode->codekind == midcode::LTC ||
-        now->Midcode->codekind == midcode::EQC) {
+    if (now->Midcode->codeKind == midcode::ADD ||
+        now->Midcode->codeKind == midcode::SUB ||
+        now->Midcode->codeKind == midcode::MULT ||
+        now->Midcode->codeKind == midcode::DIV ||
+        now->Midcode->codeKind == midcode::LTC ||
+        now->Midcode->codeKind == midcode::EQC) {
       if (ArithC(now)) {
-        // ɾ���м����
+        // 删除中间代码
         if (now->pre != nullptr) {
           now->pre->next = now->next;
         } else {
@@ -167,17 +174,17 @@ void OptiBlock(int i) {
           midcode::lastDummy->next = nullptr;
         }
       }
-    } else if (now->Midcode->codekind == midcode::ASSIG) {
+    } else if (now->Midcode->codeKind == midcode::ASSIG) {
       SubstiArg(now, 2);
       if (now->Midcode->op2->form == midcode::ValueForm) {
         AppendTable(now->Midcode->op1, now->Midcode->op2->Attr.value);
       } else {
         DelConst(now->Midcode->op1);
       }
-    } else if (now->Midcode->codekind == midcode::JUMP0 ||
-               now->Midcode->codekind == midcode::WRITEC) {
+    } else if (now->Midcode->codeKind == midcode::JUMP0 ||
+               now->Midcode->codeKind == midcode::WRITEC) {
       SubstiArg(now, 1);
-    } else if (now->Midcode->codekind == midcode::AADD) {
+    } else if (now->Midcode->codeKind == midcode::AADD) {
       SubstiArg(now, 2);
     }
     if (now == BaseBlock[i].end)
@@ -197,14 +204,14 @@ midcode::MidcodeList* ConstOptimize() {
   return midcode::firstDummy;
 }
 void OutBaseBlock() {
-  midcode::midnum = 0;
+  midcode::midNum = 0;
   for (int i = 0; i < BaseBlock.size(); i++) {
     printf("\n");
-    printf("--------��%d�������鿪ʼ-------\n", i);
-    midcode::MidcodeList* now = BaseBlock[i].begin;
+    printf("The %d base block begins\n", i);
+    const midcode::MidcodeList* now = BaseBlock[i].begin;
     while (true) {
-      std::cout << midcode::midnum << ": ";
-      std::cout << codekind_output[now->Midcode->codekind] << "   ";
+      std::cout << midcode::midNum << ": ";
+      std::cout << codeKind_output[now->Midcode->codeKind] << "   ";
       if (now->Midcode->op1 == nullptr) {
         std::cout << "nullptr" << "   ";
       } else {
@@ -239,14 +246,15 @@ void OutBaseBlock() {
         }
       }
       printf("\n");
-      midcode::midnum++;
+      midcode::midNum++;
       if (now == BaseBlock[i].end)
         break;
       now = now->next;
     }
 
-    printf("--------��%d�����������---------\n", i);
+    printf("The %d base block end\n", i);
     printf("\n");
   }
 }
+
 } // namespace optim

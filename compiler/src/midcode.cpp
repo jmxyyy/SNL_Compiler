@@ -5,7 +5,8 @@
 #include <unordered_map>
 
 namespace midcode {
-std::unordered_map<int, std::string> codekind_output = {
+
+std::unordered_map<int, std::string> codeKind_output = {
     {ADD, "ADD"},           {SUB, "SUB"},
     {MULT, "MULT"},         {DIV, "DIV"},
     {EQC, "EQC"},           {LTC, "LTC"},
@@ -18,6 +19,8 @@ std::unordered_map<int, std::string> codekind_output = {
     {ENDPROC, "ENDPROC"},   {MENTRY, "MENTRY"},
     {ENDWHILE, "ENDWHILE"}, {WHILESTART, "WHILESTART"},
 };
+
+// 临时变量先存储着，再处理
 ArgRecord* NewTemp(parse::AccessKind access) {
   auto* tmp_arg = new ArgRecord{
       AddrForm,
@@ -25,14 +28,14 @@ ArgRecord* NewTemp(parse::AccessKind access) {
        -1,
        {("tmp" + std::to_string(tmp_var_order)), -1, tmp_var_order++, access}}};
   return tmp_arg;
-} // ��ʱ�����ȴ洢�ţ��ٴ���
+}
 
-ArgRecord* ARGvalue(int value) {
+ArgRecord* ARGValue(int value) {
   auto* tmp_arg = new ArgRecord{ValueForm, {value, -1, {}}};
   return tmp_arg;
-} // ��������
+}
 
-int NewLabel() { return ++globalLabel; } // �ȷ���
+int NewLabel() { return ++globalLabel; }
 
 ArgRecord* ARGLabel(int label) {
   auto* tmp_arg = new ArgRecord{LabelForm, {-1, label, {}}};
@@ -46,10 +49,10 @@ ArgRecord* ARGAddr(const std::string& id, const int level, const int off1,
 }
 
 void PrintMidCode(const MidcodeList* dummy) {
-  midnum = 0;
+  midNum = 0;
   while (dummy) {
-    std::cout << midnum << ": ";
-    std::cout << codekind_output[dummy->Midcode->codekind] << "   ";
+    std::cout << midNum << ": ";
+    std::cout << codeKind_output[dummy->Midcode->codeKind] << "   ";
     if (dummy->Midcode->op1 == nullptr) {
       std::cout << "NULL" << "   ";
     } else {
@@ -85,15 +88,14 @@ void PrintMidCode(const MidcodeList* dummy) {
     }
     dummy = dummy->next;
     std::cout << std::endl;
-    midnum++;
+    midNum++;
   }
 };
 
-MidcodeList* GenCode(codekindtype codekind, ArgRecord* first,
-                            ArgRecord* second, ArgRecord* third) {
+MidcodeList* GenCode(const codeKindType codeKind, ArgRecord* first,
+                     ArgRecord* second, ArgRecord* third) {
 
-  auto* content =
-      new MidcodeStruct{codekind, first, second, third};
+  auto* content = new MidcodeStruct{codeKind, first, second, third};
   MidcodeList* result;
   if (firstDummy == nullptr) {
     auto* genMid = new MidcodeList{nullptr, content, nullptr};
@@ -110,76 +112,60 @@ MidcodeList* GenCode(codekindtype codekind, ArgRecord* first,
 }
 
 MidcodeList* GenMidCode(const parse::TreeNode* t) {
-  parse::TreeNode* son1 = t->child[1];
+  const parse::TreeNode* son1 = t->child[1];
   while (son1) {
-    if (son1->nodekind == parse::ProcDecK) {
-      // parse::TreeNode* iterate = son1->child[0];
-      // while (iterate != NULL) {
+    if (son1->nodeKind == parse::ProcDecK) {
       GenProDec(son1);
-      // iterate = iterate->sibling;
-      //}
     }
     son1 = son1->sibling;
   }
-  ArgRecord* ARG3 = ARGvalue(off);
-  ArgRecord* ARG2 = ARGvalue(0); // ����?
-  MidcodeList* main = GenCode(
-      MENTRY, nullptr, ARG2,
-      ARG3); // ARG2���̻��¼��С��ARG3��display����ƫ����
-  // //PENTRY���Ǳ�ţ������С������
+  ArgRecord* ARG3 = ARGValue(off);
+  ArgRecord* ARG2 = ARGValue(0); // 回填
 
-  tmp_var_order = off + 1; // ��ʼ����ʱ�������
-  //
-  Genbody(t->child[2]);
-  main->Midcode->op2->Attr.value = tmp_var_order; // �����꿩
+  // ARG2过程活动记录大小，ARG3是display表的偏移量
+  // PENTRY则是标号，过活大小，层数
+  const MidcodeList* main = GenCode(MENTRY, nullptr, ARG2, ARG3);
+
+  tmp_var_order = off + 1; // 初始化临时变量编号
+
+  GenBody(t->child[2]);
+  main->Midcode->op2->Attr.value = tmp_var_order; // 回填完
   return firstDummy;
 }
 
 void GenProDec(const parse::TreeNode* t) {
   if (t == nullptr)
     return;
-  int ProcEny = NewLabel();
-  // symbtable** Entry = new symbtable*;
-  // bool flag = FindEntry(t->name[0], true,Entry);
-  parse::symbtable* Entry = t->table[0];
+  const int ProcEny = NewLabel();
+  parse::symbolTable* Entry = t->table[0];
   Entry->attrIR.More.ProcAttr.code = ProcEny;
-  int level = Entry->attrIR.More.ProcAttr.level;
-  int off_tmp = Entry->attrIR.More.ProcAttr.size;
+  const int level = Entry->attrIR.More.ProcAttr.level;
+  const int off_tmp = Entry->attrIR.More.ProcAttr.size;
   auto* ArgOff = new ArgRecord{LabelForm, {-1, ProcEny, {}}};
   auto* ArgLevel = new ArgRecord{ValueForm, {level, -1, {}}};
 
-  parse::TreeNode* alldeclare = t->child[1];
-  // �˴�4.19 23:13�¼����޸�
-  // if (alldeclare == NULL) {
-  //	guoChengDeclareAgain = NULL;
-  // }
-  // else {
-  //	guoChengDeclareAgain = alldeclare->child[0];
-  // }
-  parse::TreeNode* guoChengDeclareAgain = alldeclare;
-  while (guoChengDeclareAgain) {
-    if (guoChengDeclareAgain->nodekind == parse::ProcDecK) {
-      // parse::TreeNode* iterate = guoChengDeclareAgain->child[0];
-      // while (iterate != NULL) {
-      GenProDec(guoChengDeclareAgain);
-      // iterate = iterate->sibling;
-      //}
+  parse::TreeNode* allDeclare = t->child[1];
+  const parse::TreeNode* DeclareAgain = allDeclare;
+  while (DeclareAgain) {
+    if (DeclareAgain->nodeKind == parse::ProcDecK) {
+      GenProDec(DeclareAgain);
     }
-    guoChengDeclareAgain = guoChengDeclareAgain->sibling;
+    DeclareAgain = DeclareAgain->sibling;
   }
-  ///////////////////////////////////////////////�Ҹ�����
-  tmp_var_order = off_tmp + level + 1; // ������levelΪ0����display�ô��������
-  // //�ֳ���levelΪ1,��display�ô������Դ�����
+
+  // 主程序level为0，但display得存个自身
+  // 分程序level为1,但display得存俩，以此类推
+  tmp_var_order = off_tmp + level + 1;
   auto* ArgSizeToFill = new ArgRecord{ValueForm, {-1, -1, {}}};
-  MidcodeList* Pentry = GenCode(PENTRY, ArgOff, ArgSizeToFill, ArgLevel);
-  Genbody(t->child[2]);
+  const MidcodeList* Pentry = GenCode(PENTRY, ArgOff, ArgSizeToFill, ArgLevel);
+  GenBody(t->child[2]);
   Pentry->Midcode->op2->Attr.value = tmp_var_order;
   MidcodeList* End = GenCode(ENDPROC, nullptr, nullptr, nullptr);
 }
 
-void Genbody(const parse::TreeNode* t) {
+void GenBody(const parse::TreeNode* t) {
   if (t == nullptr)
-    return; // �޹�����
+    return;
   parse::TreeNode* Statement = t->child[0];
   while (Statement) {
     GenStatement(Statement);
@@ -210,50 +196,48 @@ void GenStatement(parse::TreeNode* t) {
     GenWhileS(t);
     break;
   case parse::ReturnK:
-    // return;
     GenCode(RETURNC, nullptr, nullptr, nullptr);
     break;
   default:
-    std::cout << "û��������䣬�﷨������,"
-                 "�м��������ʧ��";
+    std::cout << "Without such statements, the syntax tree is wrong and "
+                 "intermediate code generation fails";
     break;
   }
-  }
+}
 
 void GenAssignS(const parse::TreeNode* t) {
   if (t == nullptr)
     return;
-  ArgRecord* Larg = GenVar(t->child[0]);
-  ArgRecord* Rarg = GenExpr(t->child[1]);
-  GenCode(ASSIG, Larg, Rarg, nullptr);
+  ArgRecord* LArg = GenVar(t->child[0]);
+  ArgRecord* RArg = GenExpr(t->child[1]);
+  GenCode(ASSIG, LArg, RArg, nullptr);
 }
 
 ArgRecord* GenVar(const parse::TreeNode* t) {
-  // symbtable** Entry = new symbtable*;
-  // bool flag = FindEntry(t->name[0], true, Entry);
-  // ��ֱ��ȡ��0λ����ң������ж���������ǲ����Զ�������,��ʵ�ҿ����ж���name�м���
+  // 敢直接取第0位嘛，不敢
+  // 特殊判断这个变量是不是自定义类型,其实我可以判断它name有几个
   if (t == nullptr)
     return nullptr;
-  parse::symbtable* Entry = t->table[0];
-  parse::AccessKind access = Entry->attrIR.More.VarAttr.access;
+  const parse::symbolTable* Entry = t->table[0];
+  const parse::AccessKind access = Entry->attrIR.More.VarAttr.access;
   const int level = Entry->attrIR.More.VarAttr.level;
   const int off1 = Entry->attrIR.More.VarAttr.off;
   ArgRecord* V1arg =
       ARGAddr(t->name[0], level, off1, access); // level off1 access
   ArgRecord* Varg;                              // result
-  switch (t->attr.expAttr.varkind) {
+  switch (t->attr.expAttr.varKind) {
   case parse::IdV: {
     Varg = V1arg;
     break;
   }
-  case parse::ArrayMembV: {
+  case parse::ArrayMemV: {
     const int low = Entry->attrIR.idtype->More.ArrayAttr.low;
 
     const int size = Entry->attrIR.idtype->More.ArrayAttr.elemTy->size;
     Varg = GenArray(V1arg, t, low, size);
     break;
   }
-  case parse::FieldMembV: {
+  case parse::FieldMemV: {
     Varg = GenField(V1arg, t, Entry->attrIR.idtype->More.body);
     break;
   }
@@ -268,8 +252,8 @@ ArgRecord* GenArray(ArgRecord* V1arg, const parse::TreeNode* t, const int low,
   if (t == nullptr)
     return nullptr;
   ArgRecord* Earg = GenExpr(t->child[0]);
-  ArgRecord* lowArg = ARGvalue(low);
-  ArgRecord* sizeArg = ARGvalue(size);
+  ArgRecord* lowArg = ARGValue(low);
+  ArgRecord* sizeArg = ARGValue(size);
   ArgRecord* tmp1 = NewTemp(parse::dir);
   ArgRecord* tmp2 = NewTemp(parse::dir);
   ArgRecord* tmp3 = NewTemp(parse::indir);
@@ -284,9 +268,8 @@ ArgRecord* GenField(ArgRecord* V1arg, const parse::TreeNode* t,
   if (t == nullptr)
     return nullptr;
   auto** Entry1 = new parse::fieldChain*;
-  // bool flag1 = FindField(t->child[0]->name[0], head, Entry1);
   const int off1 = (*Entry1)->offset;
-  ArgRecord* offArg = ARGvalue(off1);
+  ArgRecord* offArg = ARGValue(off1);
   ArgRecord* tmp1 = NewTemp(parse::indir);
   GenCode(AADD, V1arg, offArg, tmp1);
   ArgRecord* FieldV;
@@ -310,12 +293,12 @@ ArgRecord* GenExpr(const parse::TreeNode* t) {
     break;
   }
   case parse::ConstK: {
-    arg = ARGvalue(t->attr.expAttr.val);
+    arg = ARGValue(t->attr.expAttr.val);
     break;
   }
   case parse::OpK: {
-    ArgRecord* Larg = GenExpr(t->child[0]);
-    codekindtype OP;
+    ArgRecord* LArg = GenExpr(t->child[0]);
+    codeKindType OP;
     switch (t->attr.expAttr.op) {
     case scanner::PLUS: {
       OP = ADD;
@@ -348,7 +331,7 @@ ArgRecord* GenExpr(const parse::TreeNode* t) {
     case scanner::WRITE: {
       OP = WRITEC;
       break;
-    } // �ƺ���ȱ�㶫��
+    } // TODO
     case scanner::EQ: {
       OP = EQC;
       break;
@@ -357,9 +340,9 @@ ArgRecord* GenExpr(const parse::TreeNode* t) {
       break;
     }
     }
-    ArgRecord* Rarg = GenExpr(t->child[1]);
+    ArgRecord* RArg = GenExpr(t->child[1]);
     ArgRecord* tmp1 = NewTemp(parse::dir);
-    GenCode(OP, Larg, Rarg, tmp1);
+    GenCode(OP, LArg, RArg, tmp1);
     arg = tmp1;
   }
   default:
@@ -369,62 +352,56 @@ ArgRecord* GenExpr(const parse::TreeNode* t) {
 }
 
 void GenCallS(const parse::TreeNode* t) {
-  // symbtable** Entry = new symbtable*;
-  // bool flag = FindEntry(t->name[0], true, Entry);
   if (t == nullptr)
     return;
-  const parse::symbtable* Entry = t->child[0]->table[0];
+  const parse::symbolTable* Entry = t->child[0]->table[0];
   const parse::ParamTable* head = Entry->attrIR.More.ProcAttr.param;
-  // �ҵ��β�
-  parse::TreeNode* head1 = t->child[1];
+  // 找到形参
+  const parse::TreeNode* head1 = t->child[1];
   while (head1) {
     const int temp13 = head->entry->attrIR.More.VarAttr.off;
-    ArgRecord* op23 = ARGvalue(temp13);
-    ArgRecord* Earg = GenExpr(head1); // ����ʵ�ʲ���
+    ArgRecord* op23 = ARGValue(temp13);
+    ArgRecord* EArg = GenExpr(head1); // 处理实际参数
     if (head->entry->attrIR.More.VarAttr.access == parse::dir) {
-      GenCode(VALACT, Earg, op23, nullptr);
+      GenCode(VALACT, EArg, op23, nullptr);
     } else {
-      GenCode(VARACT, Earg, op23, nullptr);
+      GenCode(VARACT, EArg, op23, nullptr);
     }
     head1 = head1->sibling;
     head = head->next;
   }
-  ArgRecord* labelarg = ARGLabel(Entry->attrIR.More.ProcAttr.code);
-  ArgRecord* arg_off = ARGvalue(Entry->attrIR.More.ProcAttr.size);
-  GenCode(CALL, labelarg, nullptr, arg_off);
+  ArgRecord* labelArg = ARGLabel(Entry->attrIR.More.ProcAttr.code);
+  ArgRecord* arg_off = ARGValue(Entry->attrIR.More.ProcAttr.size);
+  GenCode(CALL, labelArg, nullptr, arg_off);
 }
 
 void GenReadS(const parse::TreeNode* t) {
   if (t == nullptr)
     return;
-  // symbtable** Entry = new symbtable*;
-  // bool flag = FindEntry(t->child[0]->name[0], true, Entry);
-  parse::symbtable* Entry = t->table[0];
-  int level = Entry->attrIR.More.VarAttr.level;
-  int off1 = Entry->attrIR.More.VarAttr.off;
-  parse::AccessKind access = Entry->attrIR.More.VarAttr.access;
-  ArgRecord* Earg = ARGAddr(t->name[0], level, off1, access);
-  GenCode(READC, Earg, nullptr, nullptr);
+  parse::symbolTable* Entry = t->table[0];
+  const int level = Entry->attrIR.More.VarAttr.level;
+  const int off1 = Entry->attrIR.More.VarAttr.off;
+  const parse::AccessKind access = Entry->attrIR.More.VarAttr.access;
+  ArgRecord* EArg = ARGAddr(t->name[0], level, off1, access);
+  GenCode(READC, EArg, nullptr, nullptr);
 }
 
 void GenIfS(const parse::TreeNode* t) {
   if (t == nullptr)
     return;
-  int else_label = NewLabel();
-  int if_label = NewLabel();
-  ArgRecord* ElseLarg = ARGLabel(else_label);
-  ArgRecord* OutLarg = ARGLabel(if_label);
-  ArgRecord* Earg = GenExpr(t->child[0]);
-  GenCode(JUMP0, Earg, ElseLarg, nullptr);
-  // Genbody(t->child[0]->sibling);
+  const int else_label = NewLabel();
+  const int if_label = NewLabel();
+  ArgRecord* ElseLArg = ARGLabel(else_label);
+  ArgRecord* OutLArg = ARGLabel(if_label);
+  ArgRecord* EArg = GenExpr(t->child[0]);
+  GenCode(JUMP0, EArg, ElseLArg, nullptr);
   parse::TreeNode* Statement = t->child[1];
   while (Statement) {
     GenStatement(Statement);
     Statement = Statement->sibling;
   }
-  GenCode(JUMP, OutLarg, nullptr, nullptr);
-  GenCode(LABEL, ElseLarg, nullptr, nullptr);
-  // Genbody(t->child[0]->sibling->sibling);
+  GenCode(JUMP, OutLArg, nullptr, nullptr);
+  GenCode(LABEL, ElseLArg, nullptr, nullptr);
   if (t->child[2] != nullptr) {
     Statement = t->child[2];
     while (Statement) {
@@ -432,14 +409,14 @@ void GenIfS(const parse::TreeNode* t) {
       Statement = Statement->sibling;
     }
   }
-  GenCode(LABEL, OutLarg, nullptr, nullptr);
+  GenCode(LABEL, OutLArg, nullptr, nullptr);
 }
 
 void GenWriteS(const parse::TreeNode* t) {
   if (t == nullptr)
     return;
-  ArgRecord* Earg = GenExpr(t->child[0]);
-  GenCode(WRITEC, Earg, nullptr, nullptr);
+  ArgRecord* EArg = GenExpr(t->child[0]);
+  GenCode(WRITEC, EArg, nullptr, nullptr);
 }
 
 void GenWhileS(const parse::TreeNode* t) {
@@ -447,19 +424,18 @@ void GenWhileS(const parse::TreeNode* t) {
     return;
   const int Label_in = NewLabel();
   const int Label_out = NewLabel();
-  ArgRecord* InLarg = ARGLabel(Label_in);
-  ArgRecord* OutLarg = ARGLabel(Label_out);
-  GenCode(WHILESTART, InLarg, nullptr, nullptr); // WHILESTART
-  ArgRecord* Earg = GenExpr(t->child[0]);
-  GenCode(JUMP0, Earg, OutLarg, nullptr);
-  parse::TreeNode* xunhuanti = t->child[1];
-  while (xunhuanti) {
-    GenStatement(xunhuanti);
-    xunhuanti = xunhuanti->sibling;
+  ArgRecord* InLArg = ARGLabel(Label_in);
+  ArgRecord* OutLArg = ARGLabel(Label_out);
+  GenCode(WHILESTART, InLArg, nullptr, nullptr); // WHILESTART
+  ArgRecord* EArg = GenExpr(t->child[0]);
+  GenCode(JUMP0, EArg, OutLArg, nullptr);
+  parse::TreeNode* tmp = t->child[1];
+  while (tmp) {
+    GenStatement(tmp);
+    tmp = tmp->sibling;
   }
-
-  GenCode(JUMP, InLarg, nullptr, nullptr);
-  GenCode(ENDWHILE, OutLarg, nullptr, nullptr); // ENDWHILE
+  GenCode(JUMP, InLArg, nullptr, nullptr);
+  GenCode(ENDWHILE, OutLArg, nullptr, nullptr); // ENDWHILE
 }
 
 } // namespace midcode

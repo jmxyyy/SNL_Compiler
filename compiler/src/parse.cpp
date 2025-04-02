@@ -9,17 +9,15 @@
 
 namespace parse {
 
-// void Input(TreeNode* root, const std::string& path) {}
-
 std::string temp_name;
-scanner::Token token; // 当前token
-std::ifstream in(TOKEN_PATH);
+scanner::Token token;         // 存储当前token
+std::ifstream in(TOKEN_PATH); // 读取token.txt
 
-TreeNode* DesParse() {
+TreeNode* Parse() {
   ReadToken();
   TreeNode* t = Program(); // 语法分析
-  if (in.eof()) {          // 完全解析
-    Input(t, AST_PATH);
+  if (in.eof()) {          // 解析完成
+    Input(t, AST_PATH);    // 写入语法树
   } else {
     const std::string a = "file END ahead";
     scanner::InputError(a, ERROR_PATH);
@@ -30,52 +28,28 @@ TreeNode* DesParse() {
 
 TreeNode* Program() {
   auto* root = new TreeNode();
-  root->nodekind = ProK;
+  root->nodeKind = ProK;
   root->lineno = token.lineShow;
-  TreeNode* t = ProgramHead();
-  TreeNode* q = DeclarePart();
-  TreeNode* s = ProgramBody();
-
-  // TODO
-  // if (t == nullptr) {
-  //     std::string a = "no program head";
-  //     scanner::InputError(a, "error.txt");
-  //     exit(0);
-  // } else {
-  //     root->child[0] = t;
-  // }
-  root->child[0] = t;
-
+  root->child[0] = ProgramHead(); // 语法分析程序头
+  TreeNode* q = DeclarePart();    // 语法分析声明部分
+  root->child[2] = ProgramBody(); // 语法分析程序体
   if (q == nullptr) {
     const std::string a = "no declare";
     scanner::InputError(a, ERROR_PATH);
-    // exit(0);
   } else {
     root->child[1] = q;
   }
-
-  // TODO
-  // if (s == nullptr) {
-  //     std::string a = "no program boby";
-  //     scanner::InputError(a, ERROR_PATH);
-  //     // exit(0);
-  // } else {
-  //     root->child[2] = s;
-  // }
-  root->child[2] = s;
-
   Match(scanner::DOT);
-  // delete t, delete q, delete s;
   return root;
 }
 
 TreeNode* ProgramHead() {
   auto* t = new TreeNode();
-  t->nodekind = PheadK;
+  t->nodeKind = PheadK;
   t->lineno = token.lineShow;
   Match(scanner::PROGRAM);
   if (token.lex == scanner::ID) {
-    t->idnum++;
+    t->idNum++;
     t->name.push_back(token.sem);
   }
   Match(scanner::ID);
@@ -83,18 +57,22 @@ TreeNode* ProgramHead() {
 }
 
 TreeNode* DeclarePart() {
+  // 声明部分可能有三种情况：类型声明，变量声明，过程声明
+  // sibling的作用是将这三种情况串联起来，形成一个链表
+  // 这样就可以在语法树中以兄弟节点的形式存储，而不是以子节点的形式存储
+  // 三者之间的关系是并列的
   TreeNode *typeP = nullptr, *varP = nullptr;
   int line = token.lineShow;
   if (TreeNode* tp1 = TypeDec(); tp1 != nullptr) {
     typeP = new TreeNode();
-    typeP->nodekind = TypeK;
+    typeP->nodeKind = TypeK;
     typeP->child[0] = tp1;
     typeP->lineno = line;
   }
   line = token.lineShow;
   if (TreeNode* tp2 = VarDec(); tp2 != nullptr) {
     varP = new TreeNode();
-    varP->nodekind = VarK;
+    varP->nodeKind = VarK;
     varP->child[0] = tp2;
     varP->lineno = line;
   }
@@ -116,6 +94,16 @@ TreeNode* DeclarePart() {
   return typeP;
 }
 
+TreeNode* ProgramBody() {
+  auto* t = new TreeNode();
+  t->nodeKind = StmLK;
+  t->lineno = token.lineShow;
+  Match(scanner::BEGIN);
+  t->child[0] = StmList();
+  Match(scanner::END);
+  return t;
+}
+
 TreeNode* TypeDec() {
   TreeNode* t = nullptr;
   if (token.lex == scanner::TYPE) {
@@ -124,8 +112,9 @@ TreeNode* TypeDec() {
              token.lex == scanner::BEGIN) {
   } else {
     ReadToken();
-    const std::string a = std::to_string(token.lineShow) + ":��ǰ����" +
-                    arrayLexTypeD[static_cast<int>(token.lex)] + "���ϸ�����";
+    const std::string a = std::to_string(token.lineShow) + ": word " +
+                          arrayLexTypeD[static_cast<int>(token.lex)] +
+                          "wrong, skip";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -135,13 +124,12 @@ TreeNode* TypeDec() {
 TreeNode* TypeDeclaration() {
   Match(scanner::TYPE);
   TreeNode* t = TypeDecList();
-  // if (t == nullptr) {}
   return t;
 }
 
 TreeNode* TypeDecList() {
   auto* t = new TreeNode();
-  t->nodekind = DecK; // �����ڵ�
+  t->nodeKind = DecK;
   t->lineno = token.lineShow;
   TypeId(t);
   Match(scanner::EQ);
@@ -161,7 +149,7 @@ TreeNode* TypeDecMore() {
   } else if (token.lex == scanner::VAR || token.lex == scanner::PROCEDURE ||
              token.lex == scanner::BEGIN) {
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + " line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -170,7 +158,7 @@ TreeNode* TypeDecMore() {
 
 void TypeId(TreeNode* t) {
   if (token.lex == scanner::ID && t != nullptr) {
-    t->idnum++;
+    t->idNum++;
     t->name.push_back(token.sem);
   }
   Match(scanner::ID);
@@ -184,12 +172,12 @@ void TypeDef(TreeNode* t) {
       StructureType(t);
     } else if (token.lex == scanner::ID) {
       t->kind.dec = IdK;
-      t->idnum++;
+      t->idNum++;
       t->name.push_back(token.sem);
       t->type_name = token.sem;
       Match(scanner::ID);
     } else {
-      std::string a = std::to_string(token.lineShow) + "���д���";
+      std::string a = std::to_string(token.lineShow) + "line error";
       scanner::InputError(a, ERROR_PATH);
       exit(0);
     }
@@ -238,21 +226,12 @@ void RecType(TreeNode* t) {
   Match(scanner::RECORD);
   TreeNode* p = FieldDecList();
   t->child[0] = p;
-  // TODO
-  // if (p != nullptr) {
-  //   t->child[0] = p;
-  // } else {
-  //   std::string a = std::to_string(token.lineShow) + "���д���";
-  //   scanner::InputError(a, "error.txt");
-  //   // cout << "�ļ���ǰ����";
-  //   exit(0);
-  // }
   Match(scanner::END);
 }
 
 TreeNode* FieldDecList() {
   auto* t = new TreeNode();
-  t->nodekind = DecK;
+  t->nodeKind = DecK;
   t->lineno = token.lineShow;
   TreeNode* p = nullptr;
   if (token.lex == scanner::INTEGER || token.lex == scanner::CHAR) {
@@ -266,7 +245,7 @@ TreeNode* FieldDecList() {
     Match(scanner::SEMI);
     p = FieldDecMore();
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -281,7 +260,7 @@ TreeNode* FieldDecMore() {
         token.lex == scanner::ARRAY) {
       t = FieldDecList();
     } else {
-      std::string a = std::to_string(token.lineShow) + "���д���";
+      std::string a = std::to_string(token.lineShow) + "line error";
       scanner::InputError(a, ERROR_PATH);
       exit(0);
     }
@@ -291,7 +270,7 @@ TreeNode* FieldDecMore() {
 
 void IdList(TreeNode* t) {
   if (token.lex == scanner::ID) {
-    t->idnum++;
+    t->idNum++;
     t->name.push_back(token.sem);
   }
   Match(scanner::ID);
@@ -304,7 +283,7 @@ void IdMore(TreeNode* t) {
     Match(scanner::COMMA);
     IdList(t);
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -316,7 +295,7 @@ TreeNode* VarDec() {
   } else if (token.lex == scanner::VAR) {
     t = VarDeclaration();
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -326,18 +305,12 @@ TreeNode* VarDec() {
 TreeNode* VarDeclaration() {
   Match(scanner::VAR);
   TreeNode* t = VarDecList();
-  // if (t == nullptr) {
-  //   std::string a = std::to_string(token.lineShow) + "���д���";
-  //   scanner::InputError(a, "error.txt");
-  //   // cout << "�ļ���ǰ����";
-  //   exit(0);
-  // }
   return t;
 }
 
 TreeNode* VarDecList() {
   auto* t = new TreeNode();
-  t->nodekind = DecK;
+  t->nodeKind = DecK;
   t->lineno = token.lineShow;
   TreeNode* p = nullptr;
   TypeDef(t);
@@ -356,7 +329,7 @@ TreeNode* VarDecMore() {
              token.lex == scanner::ID) {
     t = VarDecList();
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -365,11 +338,11 @@ TreeNode* VarDecMore() {
 
 void VarIdList(TreeNode* t) {
   if (token.lex == scanner::ID) {
-    t->idnum++;
+    t->idNum++;
     t->name.push_back(token.sem);
     Match(scanner::ID);
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -382,20 +355,19 @@ void VarIdMore(TreeNode* t) {
     Match(scanner::COMMA);
     VarIdList(t);
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
 }
 
-// ������������
 TreeNode* ProcDec() {
   TreeNode* t = nullptr;
   if (token.lex == scanner::BEGIN) {
   } else if (token.lex == scanner::PROCEDURE) {
-    t = ProcDeclaration(); // ������������
+    t = ProcDeclaration();
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -404,11 +376,11 @@ TreeNode* ProcDec() {
 
 TreeNode* ProcDeclaration() {
   auto* t = new TreeNode();
-  t->nodekind = ProcDecK;
+  t->nodeKind = ProcDecK;
   t->lineno = token.lineShow;
   Match(scanner::PROCEDURE);
   if (token.lex == scanner::ID) {
-    t->idnum++;
+    t->idNum++;
     t->name.push_back(token.sem);
     Match(scanner::ID);
   }
@@ -425,14 +397,13 @@ TreeNode* ProcDeclaration() {
 
 TreeNode* ProcDecMore() {
   TreeNode* t = nullptr;
-  if (token.lex == scanner::BEGIN)
+  if (token.lex == scanner::BEGIN) {
     return nullptr;
-  else if (token.lex == scanner::PROCEDURE) {
+  } else if (token.lex == scanner::PROCEDURE) {
     t = ProcDeclaration();
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
-    std::cout << "�ļ���ǰ����";
     exit(0);
   }
   return t;
@@ -447,7 +418,7 @@ void ParamList(TreeNode* t) {
     p = ParamDecList();
     t->child[0] = p;
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -469,13 +440,12 @@ TreeNode* ParamMore() {
     Match(scanner::SEMI);
     t = ParamDecList();
     if (t == nullptr) {
-      // ������ʾ
-      std::string a = std::to_string(token.lineShow) + "���д���";
+      const std::string a = std::to_string(token.lineShow) + "line error";
       scanner::InputError(a, ERROR_PATH);
       exit(0);
     }
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -484,21 +454,21 @@ TreeNode* ParamMore() {
 
 TreeNode* Param() {
   auto* t = new TreeNode();
-  t->nodekind = DecK;
+  t->nodeKind = DecK;
   t->lineno = token.lineShow;
   if (token.lex == scanner::INTEGER || token.lex == scanner::CHAR ||
       token.lex == scanner::RECORD || token.lex == scanner::ARRAY ||
       token.lex == scanner::ID) {
-    t->attr.procAttr.paramt = Valparamtype;
+    t->attr.procAttr.paramType = ValParamType;
     TypeDef(t);
     FormList(t);
   } else if (token.lex == scanner::VAR) {
     Match(scanner::VAR);
-    t->attr.procAttr.paramt = Varparamtype;
+    t->attr.procAttr.paramType = VarParamType;
     TypeDef(t);
     FormList(t);
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -507,7 +477,7 @@ TreeNode* Param() {
 
 void FormList(TreeNode* t) {
   if (token.lex == scanner::ID) {
-    t->idnum++;
+    t->idNum++;
     t->name.push_back(token.sem);
     Match(scanner::ID);
   }
@@ -520,7 +490,7 @@ void FidMore(TreeNode* t) {
     Match(scanner::COMMA);
     FormList(t);
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -528,26 +498,7 @@ void FidMore(TreeNode* t) {
 
 TreeNode* ProcDecPart() { return DeclarePart(); }
 
-TreeNode* ProcBody() {
-  TreeNode* t = ProgramBody();
-  // if (t == nullptr) {
-  //   std::string a = std::to_string(token.lineShow) + "���д���";
-  //   scanner::InputError(a, "error.txt");
-  //   // cout << "�ļ���ǰ����";
-  //   exit(0);
-  // }
-  return t;
-}
-
-TreeNode* ProgramBody() {
-  auto* t = new TreeNode();
-  t->nodekind = StmLK;
-  t->lineno = token.lineShow;
-  Match(scanner::BEGIN);
-  t->child[0] = StmList();
-  Match(scanner::END);
-  return t;
-}
+TreeNode* ProcBody() { return ProgramBody(); }
 
 TreeNode* StmList() {
   TreeNode* t = Stm();
@@ -564,7 +515,7 @@ TreeNode* StmMore() {
     Match(scanner::SEMI);
     t = StmList();
   } else {
-    const std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -585,29 +536,22 @@ TreeNode* Stm() {
     t = OutputStm();
   } else if (token.lex == scanner::ID) {
     auto* f = new TreeNode();
-    f->nodekind = StmtK;
+    f->nodeKind = StmtK;
     f->lineno = token.lineShow;
     auto* t1 = new TreeNode();
-    t1->nodekind = ExpK;
+    t1->nodeKind = ExpK;
     t1->lineno = token.lineShow;
     t1->kind.exp = IdEK;
-    t1->attr.expAttr.varkind = IdV;
-    t1->idnum++;
+    t1->attr.expAttr.varKind = IdV;
+    t1->idNum++;
     t1->name.push_back(token.sem);
     f->child[0] = t1;
     temp_name = token.sem;
     AssCall(f);
     t = f;
-  } else { // std::string a = std::to_string(token.lineShow) + "���д���";
-    const std::string a = std::to_string(token.lineShow) + "���д���" +
-                    "ƥ�䲻������䣬�����Ǹ�ֵ���󲿲��Ǳ"
-                    "�"
-                    "�"
-                    "�"
-                    "."
-                    "."
-                    "."
-                    ".";
+  } else {
+    const std::string a =
+        std::to_string(token.lineShow) + "line error" + " maybe = left not var";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -627,7 +571,7 @@ void AssCall(TreeNode* t) {
     CallStmRest(t);
     t->kind.stmt = CallK;
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -641,7 +585,7 @@ void AssignmentRest(TreeNode* t) {
 
 TreeNode* ConditionalStm() {
   auto* t = new TreeNode();
-  t->nodekind = StmtK;
+  t->nodeKind = StmtK;
   t->kind.stmt = IfK;
   t->lineno = token.lineShow;
   Match(scanner::IF);
@@ -658,7 +602,7 @@ TreeNode* ConditionalStm() {
 
 TreeNode* LoopStm() {
   auto* t = new TreeNode();
-  t->nodekind = StmtK;
+  t->nodeKind = StmtK;
   t->kind.stmt = WhileK;
   t->lineno = token.lineShow;
   Match(scanner::WHILE);
@@ -671,13 +615,13 @@ TreeNode* LoopStm() {
 
 TreeNode* InputStm() {
   auto* t = new TreeNode();
-  t->nodekind = StmtK;
+  t->nodeKind = StmtK;
   t->kind.stmt = ReadK;
   t->lineno = token.lineShow;
   Match(scanner::READ);
   Match(scanner::LPAREN);
   if (token.lex == scanner::ID) {
-    t->idnum++;
+    t->idNum++;
     t->name.push_back(token.sem);
   }
   Match(scanner::ID);
@@ -687,7 +631,7 @@ TreeNode* InputStm() {
 
 TreeNode* OutputStm() {
   auto* t = new TreeNode();
-  t->nodekind = StmtK;
+  t->nodeKind = StmtK;
   t->kind.stmt = WriteK;
   t->lineno = token.lineShow;
   Match(scanner::WRITE);
@@ -699,7 +643,7 @@ TreeNode* OutputStm() {
 
 TreeNode* ReturnStm() {
   auto* t = new TreeNode();
-  t->nodekind = StmtK;
+  t->nodeKind = StmtK;
   t->kind.stmt = ReturnK;
   t->lineno = token.lineShow;
   Match(scanner::RETURN);
@@ -721,7 +665,7 @@ TreeNode* ActParamList() {
       t->sibling = ActParamMore();
     }
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -735,7 +679,7 @@ TreeNode* ActParamMore() {
     Match(scanner::COMMA);
     t = ActParamList();
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -748,7 +692,7 @@ TreeNode* Exp() {
   if (token.lex == scanner::LT || token.lex == scanner::EQ) {
     auto* p = new TreeNode();
     p->lineno = line;
-    p->nodekind = ExpK;
+    p->nodeKind = ExpK;
     p->kind.exp = OpK;
     p->child[0] = t;
     p->attr.expAttr.op = token.lex;
@@ -769,7 +713,7 @@ TreeNode* Simple_exp() {
   while (token.lex == scanner::PLUS || token.lex == scanner::MINUS) {
     auto* p = new TreeNode();
     p->lineno = line;
-    p->nodekind = ExpK;
+    p->nodeKind = ExpK;
     p->kind.exp = OpK;
     p->child[0] = t;
     p->attr.expAttr.op = token.lex;
@@ -786,7 +730,7 @@ TreeNode* Term() {
   while (token.lex == scanner::TIMES || token.lex == scanner::OVER) {
     auto* p = new TreeNode();
     p->lineno = line;
-    p->nodekind = ExpK;
+    p->nodeKind = ExpK;
     p->kind.exp = OpK;
     p->child[0] = t;
     p->attr.expAttr.op = token.lex;
@@ -802,7 +746,7 @@ TreeNode* Factor() {
   if (token.lex == scanner::INTC) {
     t = new TreeNode();
     t->lineno = token.lineShow;
-    t->nodekind = ExpK;
+    t->nodeKind = ExpK;
     t->kind.exp = ConstK;
     t->attr.expAttr.val = stoi(token.sem);
     Match(scanner::INTC);
@@ -813,7 +757,7 @@ TreeNode* Factor() {
     t = Exp();
     Match(scanner::RPAREN);
   } else {
-    const std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -822,11 +766,11 @@ TreeNode* Factor() {
 
 TreeNode* Variable() {
   auto* t = new TreeNode();
-  t->nodekind = ExpK;
+  t->nodeKind = ExpK;
   t->kind.exp = IdEK;
   t->lineno = token.lineShow;
   if (token.lex == scanner::ID) {
-    t->idnum++;
+    t->idNum++;
     t->name.push_back(token.sem);
     Match(scanner::ID);
     VariMore(t);
@@ -847,16 +791,16 @@ void VariMore(TreeNode* t) {
   } else if (token.lex == scanner::LMIDPAREN) {
     Match(scanner::LMIDPAREN);
     t->child[0] = Exp();
-    t->attr.expAttr.varkind = ArrayMembV;
-    t->child[0]->attr.expAttr.varkind = IdV;
+    t->attr.expAttr.varKind = ArrayMemV;
+    t->child[0]->attr.expAttr.varKind = IdV;
     Match(scanner::RMIDPAREN);
   } else if (token.lex == scanner::DOT) {
     Match(scanner::DOT);
     t->child[0] = FieldVar();
-    t->attr.expAttr.varkind = FieldMembV;
-    t->child[0]->attr.expAttr.varkind = IdV;
+    t->attr.expAttr.varKind = FieldMemV;
+    t->child[0]->attr.expAttr.varKind = IdV;
   } else {
-    std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -864,11 +808,11 @@ void VariMore(TreeNode* t) {
 
 TreeNode* FieldVar() {
   auto* t = new TreeNode();
-  t->nodekind = ExpK;
+  t->nodeKind = ExpK;
   t->kind.exp = IdEK;
   t->lineno = token.lineShow;
   if (token.lex == scanner::ID) {
-    t->idnum++;
+    t->idNum++;
     t->name.push_back(token.sem);
     Match(scanner::ID);
     FieldVarMore(t);
@@ -889,20 +833,20 @@ void FieldVarMore(TreeNode* t) {
   } else if (token.lex == scanner::LMIDPAREN) {
     Match(scanner::LMIDPAREN);
     t->child[0] = Exp();
-    t->child[0]->attr.expAttr.varkind = ArrayMembV;
+    t->child[0]->attr.expAttr.varKind = ArrayMemV;
     Match(scanner::RMIDPAREN);
   } else {
-    const std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
 }
 
-void Match(scanner::LexType expexted) {
-  if (token.lex == expexted) {
+void Match(const scanner::LexType expected) {
+  if (token.lex == expected) {
     ReadToken();
   } else {
-    const std::string a = std::to_string(token.lineShow) + "���д���";
+    const std::string a = std::to_string(token.lineShow) + "line error";
     scanner::InputError(a, ERROR_PATH);
     exit(0);
   }
@@ -918,7 +862,6 @@ void ReadToken() {
   in_word >> lex;
   token.lex = static_cast<scanner::LexType>(lex);
   in_word >> token.sem;
-  // int lineno = token.lineShow;
 }
 
 } // namespace parse
