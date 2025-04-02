@@ -22,88 +22,55 @@ inline std::string arrayLexTypeD[] = {
     "RETURN",    "READ",    "WRITE",  "ASSIGN", "THEN",      "FI",
     "ELSE",      "DO"};
 
-struct TreeNode;
-
-void PrintTreeNode(const TreeNode* node, int depth);
-
+// 语法树节点类型
 enum NodeKindEnum {
-  ProK,
-  PheadK,
-  TypeK,
-  VarK,
-  ProcDecK,
+  ProK, // 根
+  PheadK, // 程序头
+  TypeK, // 类型声明
+  VarK, // 变量声明
+  ProcDecK, //
   StmLK,
   DecK,
   StmtK,
   ExpK
 };
 
-enum DeckEnum { // �����ڵ�����ö��
-  ArrayK,       // ��������
-  CharK,        // �ַ�����
-  IntegerK,     // ��������
-  RecordK,      // ��¼����
-  IdK           // �����ͱ�־����Ϊ����
-};
+enum DeckEnum { ArrayK, CharK, IntegerK, RecordK, IdK };
 
-enum StmtKEnum { // ���ڵ�����ö��
-  IfK,           // �ж��������
-  WhileK,        // ѭ���������
-  AssignK,       // ��ֵ�������
-  ReadK,         // ���������
-  WriteK,        // д�������
-  CallK,         // ���������������
-  ReturnK        // �����������
-};
+enum StmtKEnum { IfK, WhileK, AssignK, ReadK, WriteK, CallK, ReturnK };
 
-enum ExpKEnum { //	���ʽ�ڵ�����ö��
-  OpK,          //	����������
-  ConstK,       // ����������
-  IdEK          // ��ʶ������
-};
+enum ExpKEnum { OpK, ConstK, IdEK };
 
-enum ParamtEnum { // ������ֵ�λ��Ǳ��
-  Valparamtype,
-  Varparamtype
-};
+enum ParamtEnum { Valparamtype, Varparamtype };
 
-enum VarKindEnum { // ���������,�ֱ��ʾ�����Ǳ�־�������������Ա�����������Ա����
-  IdV,
-  ArrayMembV,
-  FieldMembV
-};
+enum VarKindEnum { IdV, ArrayMembV, FieldMembV };
 
 enum ExpType { Void, Integer, Boolean };
 
 union Kind {
-  DeckEnum
-      dec; // ��¼�﷨���ڵ����������,��nodekind=DecKʱ��Ч
-  StmtKEnum
-      stmt; // ��¼�﷨���ڵ���������,��nodekind=StmtKʱ��Ч
-  ExpKEnum
-      exp; // ��¼�﷨���ڵ�ı��ʽ����,��nodekind=ExpKʱ��Ч
+  DeckEnum dec;
+  StmtKEnum stmt;
+  ExpKEnum exp;
 };
 
-struct ArrayAttr { // ��¼�������͵����ԡ�
+struct ArrayAttr {
   int low;
   int up;
   DeckEnum childType;
 };
 
-struct ProcAttr { // ��¼���̵����ԡ�
+struct ProcAttr {
   ParamtEnum paramt;
 };
 
-struct ExpAttr { // ��¼���ʽ�����ԡ�
-  scanner::LexType
-      op; // ��¼�﷨���ڵ����������ʣ�Ϊ��������
-  int val;             // ��¼�﷨���ڵ����ֵ,
-  VarKindEnum varkind; // ��¼���������
-  ExpType type; // ��¼�﷨���ڵ�ļ�����ͣ�ȡֵVoid,
-                // Integer,Boolean,Ϊ���ͼ��ExpType����
+struct ExpAttr {
+  scanner::LexType op;
+  int val;
+  VarKindEnum varkind;
+  ExpType type;
 };
 
-struct Attr { // ��¼�﷨���ڵ���������
+struct Attr {
   ArrayAttr arrayAttr;
   ProcAttr procAttr;
   ExpAttr expAttr;
@@ -111,6 +78,7 @@ struct Attr { // ��¼�﷨���ڵ���������
 
 struct symbtable;
 struct typeIR;
+struct TreeNode;
 
 enum IdKind { typeKind, varKind, procKind };
 
@@ -323,6 +291,8 @@ void FieldVarMore(TreeNode* t);
 void Match(scanner::LexType expexted);
 
 void ReadToken();
+
+void PrintTreeNode(const TreeNode* node, int depth);
 
 } // namespace parse
 #endif // PARSE_H

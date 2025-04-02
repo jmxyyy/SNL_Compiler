@@ -1,6 +1,7 @@
 //
 // Created by jmxyyy.
 //
+
 #include "../include/scanner.h"
 #include "../include/config.h"
 
@@ -13,8 +14,8 @@ void Scanner() {
   int line_num = 0;  // 行号
   state sta = START; // 状态
 
-  std::ifstream fin(INPUT_PATH);
-  std::ofstream fout(TOKEN_PATH);
+  std::ifstream fin(INPUT_PATH);  // 输入流
+  std::ofstream fout(TOKEN_PATH); // 输出流
 
   if (!fin && !fout) {
     std::string a = "file read fail";
@@ -32,7 +33,6 @@ void Scanner() {
       break;
     }
     while (i < query_length) {
-      // char ch = line[i];
       if (sta == FINISH) { // 读到句号, token写入文件退出循环
         Token tok(line_num, LexType::DOT, "Finish");
         fout << tok.lineShow << ' ' << tok.lex << ' ' << tok.sem << std::endl;
@@ -107,7 +107,6 @@ void Scanner() {
             std::string a = std::to_string(line_num) + " line has num error";
             InputError(a, ERROR_PATH);
             exit(0);
-            // break;
           }
         }
         // 分界符

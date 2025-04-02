@@ -87,10 +87,10 @@ public:
 void Scanner();
 
 inline void InputError(const std::string& errorInfo, const std::string& path) {
-  std::ofstream ouput;
-  ouput.open(path);
-  ouput << errorInfo;
-  ouput.close();
+  std::ofstream output;
+  output.open(path);
+  output << errorInfo;
+  output.close();
 }
 
 } // namespace scanner
