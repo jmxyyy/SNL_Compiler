@@ -176,17 +176,17 @@ struct typeIR {
   } More;
 };
 
-typeIR* TypeProcess(parse::TreeNode* t);
+typeIR* TypeProcess(TreeNode* t);
 
-void statement(parse::TreeNode* t);
+void statement(TreeNode* t);
 
-void bianli(parse::TreeNode* t);
+void bianli(TreeNode* t);
 
-void Body(parse::TreeNode* t);
+void Body(TreeNode* t);
 
-void Analyze(parse::TreeNode* currentP);
-typeIR* recordVar(parse::TreeNode* t);
-typeIR* arrayVar(parse::TreeNode* t);
+void Analyze(TreeNode* currentP);
+typeIR* recordVar(TreeNode* t);
+typeIR* arrayVar(TreeNode* t);
 
 struct TreeNode {
   TreeNode* child[3];
