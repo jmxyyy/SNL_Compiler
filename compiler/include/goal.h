@@ -11,6 +11,17 @@
 
 namespace goal {
 
+struct CodeLine {
+  int index;
+  char code[100];
+};
+
+inline int compare(const void* a, const void* b) {
+  const auto* l1 = static_cast<const CodeLine*>(a);
+  const auto* l2 = static_cast<const CodeLine*>(b);
+  return l1->index - l2->index;
+}
+
 inline FILE* goal_code;
 
 void outputInstruct(const std::string& errorInfo, const std::string& path);

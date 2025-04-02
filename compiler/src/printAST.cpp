@@ -73,14 +73,14 @@ std::map<NodeKindEnum, std::string> nodeKindMapForOutput = {
 
 void PrintTreeNode(const TreeNode* node, int depth) {
   for (int i = 0; i < depth; i++) {
-    std::string str = "��   ";
+    std::string str = "|   ";
     std::cout << str;
   }
 
   if (node->idNum > 0) {
     if (node->nodeKind == ProcDecK)
       flag_tag = 1;
-    std::cout << "������ " << nodeKindMapForOutput[node->nodeKind] << "  ";
+    std::cout << "|--- " << nodeKindMapForOutput[node->nodeKind] << "  ";
     if (nodeKindMapForOutput[node->nodeKind] == "DecK") {
       switch (node->kind.dec) {
       case 0:
@@ -153,7 +153,7 @@ void PrintTreeNode(const TreeNode* node, int depth) {
     }
     std::cout << ")" << std::endl;
   } else if (nodeKindMapForOutput[node->nodeKind] == "StmtK") {
-    std::cout << "������ " << nodeKindMapForOutput[node->nodeKind] << "  ";
+    std::cout << "|--- " << nodeKindMapForOutput[node->nodeKind] << "  ";
     switch (node->kind.stmt) {
     case 0:
       std::cout << "IfK" << std::endl;

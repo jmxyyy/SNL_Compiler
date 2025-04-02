@@ -183,36 +183,37 @@ void codeGen(midcode::MidcodeList* mid_code) {
   fclose(goal_code);
 
   // sort
-  // FILE* input_file = fopen("goal_code.txt", "r");
-  // if (input_file == NULL) {
-  //   printf("无法打开输入文件。\n");
-  //   return 1;
-  // }
+  FILE* input_file = fopen(GOAL_MID_PATH.c_str(), "r");
+  if (input_file == nullptr) {
+    printf("无法打开输入文件。\n");
+    exit(0);
+  }
 
   // 读取并解析文件内容
-  // CodeLine lines[1000];
-  // int line_count = 0;
-  // while (fscanf(input_file, "%d:%99[^\n]", &lines[line_count].index, lines[line_count].code) == 2) {
-  //   fgetc(input_file); // 读取换行符
-  //   line_count++;
-  // }
-  // fclose(input_file);
-  //
-  // // 对解析后的内容进行排序
-  // qsort(lines, line_count, sizeof(CodeLine), compare);
-  //
-  // // 将排序后的内容写入文件
-  // FILE* output_file = fopen("sorted_goal_code.txt", "w");
-  // if (output_file == NULL) {
-  //   printf("无法打开输出文件。\n");
-  //   return 1;
-  // }
-  // for (int i = 0; i < line_count; ++i) {
-  //   if(i!=line_count-1)
-  //     fprintf(output_file, "%3d: %s\n", lines[i].index, lines[i].code);
-  //   else  fprintf(output_file, "%3d: %s", lines[i].index, lines[i].code);
-  // }
-  // fclose(output_file);
+  CodeLine lines[1000];
+  int line_count = 0;
+  while (fscanf(input_file, "%d:%99[^\n]", &lines[line_count].index, lines[line_count].code) == 2) {
+    fgetc(input_file); // 读取换行符
+    line_count++;
+  }
+  fclose(input_file);
+
+  // 对解析后的内容进行排序
+  qsort(lines, line_count, sizeof(CodeLine), compare);
+
+  // 将排序后的内容写入文件
+  FILE* output_file = fopen(GOAL_PATH.c_str(), "w");
+  if (output_file == nullptr) {
+    printf("无法打开输出文件。\n");
+    exit(0);
+  }
+
+  for (int i = 0; i < line_count; ++i) {
+    if(i!=line_count-1)
+      fprintf(output_file, "%3d: %s\n", lines[i].index, lines[i].code);
+    else  fprintf(output_file, "%3d: %s", lines[i].index, lines[i].code);
+  }
+  fclose(output_file);
 }
 
 void arithGen(const midcode::MidcodeList* mid_code) {

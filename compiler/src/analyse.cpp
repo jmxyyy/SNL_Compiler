@@ -40,10 +40,7 @@ bool SearchOneTable(const std::string& id, const int currentLevel,
       (*Entry) = t;
       return true;
     }
-    // TODO
-    // else {
-    //   t = t->next;
-    // }
+    t = t->next;
   }
   return false;
 }
