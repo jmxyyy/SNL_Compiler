@@ -94,7 +94,6 @@ void PrintMidCode(const MidcodeList* dummy) {
 
 MidcodeList* GenCode(const codeKindType codeKind, ArgRecord* first,
                      ArgRecord* second, ArgRecord* third) {
-
   auto* content = new MidcodeStruct{codeKind, first, second, third};
   MidcodeList* result;
   if (firstDummy == nullptr) {
